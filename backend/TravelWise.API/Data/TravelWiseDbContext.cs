@@ -20,4 +20,9 @@ public class TravelWiseDbContext : DbContext
     public DbSet<Expense> Expenses { get; set; }
 
     public DbSet<Activity> Activities { get; set; }
+
+    public DbSet<RiskAssessment> RiskAssessments { get; set; }
+    public DbSet<WeatherData> WeatherData { get; set; }
+   
+   
 }

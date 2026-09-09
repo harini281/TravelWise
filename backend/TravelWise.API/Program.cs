@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TravelWise.API.Data;
+using TravelWise.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<TravelWiseDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("TravelWiseDb")));
+
+builder.Services.AddHttpClient<WeatherService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 var app = builder.Build();
 
