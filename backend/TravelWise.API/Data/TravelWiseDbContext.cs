@@ -23,6 +23,10 @@ public class TravelWiseDbContext : DbContext
 
     public DbSet<RiskAssessment> RiskAssessments { get; set; }
     public DbSet<WeatherData> WeatherData { get; set; }
+
+    public DbSet<TravelRequirement> TravelRequirements { get; set; }
+public DbSet<ReadinessItem> ReadinessItems { get; set; }
+public DbSet<ReadinessAssessment> ReadinessAssessments { get; set; }
    
    
 }

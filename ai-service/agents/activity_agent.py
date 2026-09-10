@@ -1,13 +1,13 @@
 from state.workflow_state import TravelWiseState
-from tools.activity_tools import get_trip_activities
+from tools.risk_tools import assess_trip_risk
 
 
-def run_activity_agent(state: TravelWiseState) -> TravelWiseState:
+def run_risk_agent(state: TravelWiseState) -> TravelWiseState:
     """
-    Activity Agent.
+    Risk Agent.
 
-    Retrieves activities through the controlled Activity Tool
-    and produces a structured activity analysis.
+    Uses the controlled Risk Tool to retrieve
+    the deterministic trip risk assessment.
     """
 
     trip_id = state.get("trip_id")
@@ -15,44 +15,69 @@ def run_activity_agent(state: TravelWiseState) -> TravelWiseState:
     state["agent_results"] = state.get("agent_results", {})
 
     if not trip_id:
-        state["agent_results"]["activity"] = {
+        state["agent_results"]["risk"] = {
             "status": "ERROR",
             "message": "Trip ID is missing."
         }
         return state
 
-    activity_result = get_trip_activities(trip_id)
+    risk_result = assess_trip_risk(trip_id)
 
-    if activity_result.get("status") != "SUCCESS":
-        state["agent_results"]["activity"] = {
-            "status": activity_result.get("status", "ERROR"),
+    if risk_result.get("status") != "SUCCESS":
+        state["agent_results"]["risk"] = {
+            "status": risk_result.get("status", "ERROR"),
             "trip_id": trip_id,
-            "message": activity_result.get(
+            "message": risk_result.get(
                 "message",
-                "Unable to retrieve activities."
+                "Unable to complete risk assessment."
             )
         }
         return state
 
-    activities = activity_result.get("activities", [])
+    risk = risk_result["risk"]
 
-    categories = {}
+    risk_level = risk.get("riskLevel", "UNKNOWN")
 
-    for activity in activities:
-        category = activity.get("category", "Other")
-        categories[category] = categories.get(category, 0) + 1
+    if risk_level == "LOW":
+        recommendation = (
+            "Current conditions indicate low risk. "
+            "The traveller can continue with normal precautions."
+        )
 
-    state["agent_results"]["activity"] = {
+    elif risk_level == "MODERATE":
+        recommendation = (
+            "Some caution is recommended. "
+            "Weather-sensitive activities should be monitored."
+        )
+
+    elif risk_level == "HIGH":
+        recommendation = (
+            "Safer alternatives should be considered "
+            "for weather-sensitive activities."
+        )
+
+    elif risk_level == "CRITICAL":
+        recommendation = (
+            "High-risk activities should not proceed "
+            "without review and approval."
+        )
+
+    else:
+        recommendation = (
+            "Risk information could not be interpreted safely."
+        )
+
+    state["agent_results"]["risk"] = {
         "status": "SUCCESS",
         "trip_id": trip_id,
         "analysis": {
-            "activity_count": len(activities),
-            "categories": categories,
-            "activities": activities,
-            "message": (
-                f"Found {len(activities)} planned activities "
-                f"for this trip."
-            )
+            "risk_score": risk.get("riskScore"),
+            "risk_level": risk_level,
+            "summary": risk.get("summary"),
+            "temperature_c": risk.get("temperatureC"),
+            "wind_speed_kph": risk.get("windSpeedKph"),
+            "weather_code": risk.get("weatherCode"),
+            "recommendation": recommendation
         }
     }
 
