@@ -1,7 +1,8 @@
+import os
 import httpx
 
 
-API_BASE_URL = "http://localhost:5179"
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:5179")
 
 
 def get_trip_budget(trip_id: int) -> dict:

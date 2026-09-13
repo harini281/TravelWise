@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -131,6 +131,7 @@ public class AuthController : ControllerBase
         });
     }
 
+    [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> GetProfile()
     {

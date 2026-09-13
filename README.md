@@ -198,9 +198,17 @@ curl -X POST http://localhost:5179/api/Auth/seed-demo-users
 
 | Role | Email | Password | Access Level |
 | :--- | :--- | :--- | :--- |
-| **Traveller** | `traveller@travelwise.local` | `Traveller123!` | Personal trip planning, budget logging |
-| **Reviewer** | `reviewer@travelwise.local` | `Reviewer123!` | AI workflow evaluation, approval actions |
-| **Administrator** | `admin@travelwise.local` | `Admin123!` | System-wide administrative controls |
+| **Traveller** | `traveller@travelwise.lk` | `Traveller123!` | Personal trip planning, budget logging |
+| **Reviewer** | `reviewer@travelwise.lk` | `Reviewer123!` | AI workflow evaluation, approval actions |
+| **Administrator** | `admin@travelwise.lk` | `Admin123!` | System-wide administrative controls |
+
+---
+
+## Running the Performance Benchmark
+```bash
+python scripts/performance_benchmark.py
+```
+Executes a lightweight latency and failure rate audit across trips, expenses, live weather telemetry, and LangGraph workflow orchestration.
 
 ---
 

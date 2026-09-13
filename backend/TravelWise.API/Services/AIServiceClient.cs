@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TravelWise.API.Data;
@@ -124,7 +124,10 @@ public class AIServiceClient
             _logger.LogWarning(ex, "Could not reach Python AI service on port 8000; using built-in deterministic fallback.");
         }
 
-        // Resilient Fallback Evaluator (Offline Viva Safety)
+        // -----------------------------------------------------------------
+        // SAFE FAILURE: Explicit Deterministic Fallback
+        // (Invoked when Python AI microservice is unreachable or errors)
+        // -----------------------------------------------------------------
         var totalBudget = budget?.TotalAmount ?? trip.BudgetAmount;
         var totalSpent = expenses.Sum(e => e.Amount);
         var remaining = totalBudget - totalSpent;
@@ -133,21 +136,22 @@ public class AIServiceClient
         {
             WorkflowId = workflowId,
             TripId = tripId,
-            WorkflowStatus = "AWAITING_APPROVAL",
+            WorkflowStatus = "SAFE_FAILURE",
             ApprovalStatus = "PENDING",
             AgentTasks = new List<object>
             {
-                new { agent = "budget", task = "Analyse trip budget and spending." },
-                new { agent = "activity", task = "Analyse trip activities and schedule." },
-                new { agent = "risk", task = "Assess travel safety and weather risk." },
-                new { agent = "readiness", task = "Assess traveller readiness." }
+                new { agent = "budget", task = "Deterministic fallback budget analysis.", is_fallback = true },
+                new { agent = "activity", task = "Deterministic fallback activity analysis.", is_fallback = true },
+                new { agent = "risk", task = "Deterministic fallback safety analysis.", is_fallback = true },
+                new { agent = "readiness", task = "Deterministic fallback readiness check.", is_fallback = true }
             },
             AgentResults = new Dictionary<string, object>
             {
                 ["budget"] = new
                 {
-                    status = "SUCCESS",
+                    status = "FALLBACK_DETERMINISTIC",
                     trip_id = tripId,
+                    is_fallback = true,
                     analysis = new
                     {
                         total_budget = totalBudget,
@@ -155,47 +159,62 @@ public class AIServiceClient
                         remaining_budget = remaining,
                         spending_percentage = totalBudget > 0 ? Math.Round((totalSpent / totalBudget) * 100, 2) : 0,
                         health = totalSpent < totalBudget ? "HEALTHY" : "OVERSPENT",
-                        recommendation = "Spending is currently under control."
+                        recommendation = "[FALLBACK] Spending is within initial budget limit. Verify before final approval.",
+                        source = "FALLBACK_DETERMINISTIC_ENGINE"
                     }
                 },
                 ["activity"] = new
                 {
-                    status = "SUCCESS",
+                    status = "FALLBACK_DETERMINISTIC",
                     trip_id = tripId,
+                    is_fallback = true,
                     analysis = new
                     {
                         activity_count = activities.Count,
-                        recommendation = $"{activities.Count} activity planned. Schedule is clear."
+                        recommendation = $"[FALLBACK] {activities.Count} activity(ies) planned. Schedule requires manual confirmation.",
+                        source = "FALLBACK_DETERMINISTIC_ENGINE"
                     }
                 },
                 ["risk"] = new
                 {
-                    status = "SUCCESS",
+                    status = "FALLBACK_DETERMINISTIC",
                     trip_id = tripId,
+                    is_fallback = true,
                     analysis = new
                     {
                         risk_score = 0,
                         risk_level = "LOW",
-                        summary = "Weather conditions indicate a safe trip."
+                        summary = "[FALLBACK] Baseline regional weather conditions applied.",
+                        recommendation = "External AI service offline. Human reviewer must verify weather risk.",
+                        source = "FALLBACK_DETERMINISTIC_ENGINE"
                     }
                 },
                 ["readiness"] = new
                 {
-                    status = "SUCCESS",
+                    status = "FALLBACK_DETERMINISTIC",
                     trip_id = tripId,
+                    is_fallback = true,
                     analysis = new
                     {
                         readiness_score = requirements.Count > 0 ? (int)((items.Count(i => i.Status == "COMPLETED") / (double)requirements.Count) * 100) : 100,
-                        readiness_level = "PARTIALLY_READY"
+                        readiness_level = "PARTIALLY_READY",
+                        summary = "[FALLBACK] Deterministic checklist review.",
+                        recommendation = "Review all required travel documents before departure.",
+                        source = "FALLBACK_DETERMINISTIC_ENGINE"
                     }
                 }
             },
             ValidationResults = new Dictionary<string, object>
             {
                 ["passed"] = true,
-                ["requires_approval"] = true
+                ["requires_approval"] = true,
+                ["is_fallback"] = true,
+                ["message"] = "External AI service was unavailable; safely fallen back to deterministic engine. Human review required."
             },
-            Errors = new List<string>()
+            Errors = new List<string>
+            {
+                "EXTERNAL_SERVICE_UNAVAILABLE: Python AI service on port 8000 was unreachable. Safe deterministic fallback data was provided for human reviewer inspection."
+            }
         };
     }
 }

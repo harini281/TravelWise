@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelWise.API.Data;
@@ -244,6 +245,7 @@ namespace TravelWise.API.Controllers
         // POST /api/Workflow/{id}/approval
         // -------------------------------------------------
 
+        [Authorize(Roles = "Reviewer,Admin")]
         [HttpPost("{id}/approval")]
         public async Task<IActionResult> ProcessApproval(
             int id,

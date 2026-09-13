@@ -19,9 +19,15 @@ builder.Services.AddScoped<AuthService>();
 // JWT Authentication
 // ---------------------------------------------------------
 
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "TravelWiseSuperSecretSecureKeyForUniversityVivaDemo2026!";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "TravelWiseAPI";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "TravelWiseClient";
+var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET") ??
+    builder.Configuration["Jwt:Key"] ??
+    "TravelWiseSuperSecretSecureKeyForUniversityVivaDemo2026!";
+var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ??
+    builder.Configuration["Jwt:Issuer"] ??
+    "TravelWiseAPI";
+var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ??
+    builder.Configuration["Jwt:Audience"] ??
+    "TravelWiseClient";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -83,26 +89,32 @@ builder.Services.AddSwaggerGen(c =>
 // PostgreSQL
 // ---------------------------------------------------------
 
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") ??
+    builder.Configuration.GetConnectionString("TravelWiseDb");
+
 builder.Services.AddDbContext<TravelWiseDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("TravelWiseDb")
-    )
+    options.UseNpgsql(connectionString)
 );
 
 
 // ---------------------------------------------------------
-// CORS - allow React frontend
+// CORS - allow frontend clients
 // ---------------------------------------------------------
+
+var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+    new[]
+    {
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000"
+    };
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactFrontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:5173",
-                "http://localhost:5174"
-            )
+            .WithOrigins(configuredOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -135,10 +147,14 @@ builder.Services
 // Agentic AI Service HTTP Client (LangGraph Python Service)
 // ---------------------------------------------------------
 
+var aiServiceUrl = Environment.GetEnvironmentVariable("AISERVICE_URL") ??
+    builder.Configuration["AIService:BaseUrl"] ??
+    "http://localhost:8000";
+
 builder.Services
     .AddHttpClient<AIServiceClient>(client =>
     {
-        client.BaseAddress = new Uri("http://localhost:8000");
+        client.BaseAddress = new Uri(aiServiceUrl);
         client.Timeout = TimeSpan.FromSeconds(45);
     });
 
