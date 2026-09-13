@@ -45,7 +45,7 @@ class _TripDashboardState extends State<TripDashboard> {
 
       final response = await http.get(
         Uri.parse(
-          'http://10.0.2.2:5179/api/Trips/2',
+          'http://localhost:5179/api/Trips/2',
         ),
       );
 
