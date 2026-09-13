@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'config.dart';
+
 class RiskDashboard extends StatefulWidget {
   const RiskDashboard({
     super.key,
@@ -16,7 +18,7 @@ class RiskDashboard extends StatefulWidget {
 }
 
 class _RiskDashboardState extends State<RiskDashboard> {
-  final String apiUrl = 'http://localhost:5179';
+  final String apiUrl = AppConfig.apiBaseUrl;
 
   Map<String, dynamic>? weather;
   Map<String, dynamic>? risk;

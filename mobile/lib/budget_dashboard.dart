@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'config.dart';
+
 class BudgetDashboard extends StatefulWidget {
   const BudgetDashboard({
     super.key,
@@ -32,7 +34,7 @@ class BudgetDashboardState
 
       final response = await http.get(
         Uri.parse(
-          'http://localhost:5179/api/Budgets/${widget.budgetId}/health',
+          '${AppConfig.apiBaseUrl}/api/Budgets/${widget.budgetId}/health',
         ),
       );
 

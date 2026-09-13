@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'config.dart';
+
 class ActivityManager extends StatefulWidget {
   const ActivityManager({
     super.key,
@@ -16,7 +18,7 @@ class ActivityManager extends StatefulWidget {
 }
 
 class _ActivityManagerState extends State<ActivityManager> {
-  final String apiUrl = 'http://localhost:5179';
+  final String apiUrl = AppConfig.apiBaseUrl;
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();

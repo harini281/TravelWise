@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'config.dart';
+
 class ReadinessDashboard extends StatefulWidget {
   const ReadinessDashboard({
     super.key,
@@ -18,7 +20,7 @@ class ReadinessDashboard extends StatefulWidget {
 
 class _ReadinessDashboardState
     extends State<ReadinessDashboard> {
-  final String apiUrl = 'http://localhost:5179';
+  final String apiUrl = AppConfig.apiBaseUrl;
 
   List<dynamic> requirements = [];
   List<dynamic> checklist = [];

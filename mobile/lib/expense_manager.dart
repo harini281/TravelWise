@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'config.dart';
+
 class ExpenseManager extends StatefulWidget {
   const ExpenseManager({
     super.key,
@@ -30,7 +32,7 @@ class _ExpenseManagerState extends State<ExpenseManager> {
   final TextEditingController dateController =
       TextEditingController();
 
-  final String apiUrl = 'http://localhost:5179';
+  final String apiUrl = AppConfig.apiBaseUrl;
 
   List<dynamic> expenses = [];
 

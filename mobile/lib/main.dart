@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'activity_manager.dart';
 import 'budget_dashboard.dart';
+import 'config.dart';
 import 'expense_manager.dart';
 import 'readiness_dashboard.dart';
 import 'risk_dashboard.dart';
@@ -47,6 +48,92 @@ class _TravelWiseHomeScreenState extends State<TravelWiseHomeScreen> {
   bool loading = true;
   String error = '';
 
+  // Auth state & controllers
+  Map<String, dynamic>? currentUser;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool authLoading = false;
+  String authError = '';
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+    if (username.isEmpty || password.isEmpty) {
+      setState(() {
+        authError = 'Please enter both username and password.';
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        authLoading = true;
+        authError = '';
+      });
+
+      final response = await http.post(
+        Uri.parse('${AppConfig.apiBaseUrl}/api/Auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 401) {
+        throw Exception('Invalid username or password.');
+      }
+
+      if (response.statusCode != 200) {
+        throw Exception('Login failed: ${response.body}');
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      setState(() {
+        currentUser = {
+          'username': data['username'],
+          'email': data['email'],
+          'role': data['role'],
+          'token': data['token'],
+        };
+        _passwordController.clear();
+      });
+    } catch (e) {
+      setState(() {
+        authError = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          authLoading = false;
+        });
+      }
+    }
+  }
+
+  void _handleLogout() {
+    setState(() {
+      currentUser = null;
+      _passwordController.clear();
+      authError = '';
+    });
+  }
+
+  void _quickFillPersona(String u, String p) {
+    _usernameController.text = u;
+    _passwordController.text = p;
+    setState(() {
+      authError = '';
+    });
+  }
+
   Future<void> loadTrip() async {
     try {
       setState(() {
@@ -55,7 +142,7 @@ class _TravelWiseHomeScreenState extends State<TravelWiseHomeScreen> {
       });
 
       final response = await http.get(
-        Uri.parse('http://localhost:5179/api/Trips/2'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/Trips/2'),
       );
 
       if (response.statusCode != 200) {
@@ -149,6 +236,11 @@ class _TravelWiseHomeScreenState extends State<TravelWiseHomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // 0. User Authentication Card
+                          _buildAuthCard(),
+
+                          const SizedBox(height: 12),
+
                           // 1. Trip Overview Card
                           Card(
                             elevation: 2,
@@ -269,7 +361,10 @@ class _TravelWiseHomeScreenState extends State<TravelWiseHomeScreen> {
                           const SizedBox(height: 16),
 
                           // 7. AI Workflow + Human Approval
-                          const WorkflowDashboard(tripId: 2),
+                          WorkflowDashboard(
+                            tripId: 2,
+                            user: currentUser,
+                          ),
 
                           const SizedBox(height: 40),
                         ],
@@ -305,5 +400,152 @@ class _TravelWiseHomeScreenState extends State<TravelWiseHomeScreen> {
     } catch (_) {
       return value.toString();
     }
+  }
+
+  Widget _buildAuthCard() {
+    Color roleColor = Colors.blue;
+    if (currentUser?['role'] == 'Admin') roleColor = Colors.red.shade700;
+    if (currentUser?['role'] == 'Reviewer') roleColor = Colors.purple.shade700;
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.grey.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: currentUser != null
+            ? Row(
+                children: [
+                  const Icon(Icons.account_circle, size: 36, color: Colors.blueGrey),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              currentUser!['username']?.toString() ?? '',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: roleColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                currentUser!['role']?.toString() ?? '',
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          currentUser!['email']?.toString() ?? '',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _handleLogout,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.logout, size: 16),
+                    label: const Text('Logout'),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.lock_outline, size: 20),
+                          SizedBox(width: 6),
+                          Text(
+                            'User Authentication',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          Text('Quick Fill: ', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                          ActionChip(
+                            label: const Text('Traveller', style: TextStyle(fontSize: 11)),
+                            padding: EdgeInsets.zero,
+                            onPressed: () => _quickFillPersona('traveller', 'Traveller123!'),
+                          ),
+                          ActionChip(
+                            label: const Text('Reviewer', style: TextStyle(fontSize: 11)),
+                            padding: EdgeInsets.zero,
+                            onPressed: () => _quickFillPersona('reviewer', 'Reviewer123!'),
+                          ),
+                          ActionChip(
+                            label: const Text('Admin', style: TextStyle(fontSize: 11)),
+                            padding: EdgeInsets.zero,
+                            onPressed: () => _quickFillPersona('admin', 'Admin123!'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Password',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: authLoading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        ),
+                        child: Text(authLoading ? '...' : 'Login'),
+                      ),
+                    ],
+                  ),
+                  if (authError.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '⚠️ $authError',
+                      style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                    ),
+                  ],
+                ],
+              ),
+      ),
+    );
   }
 }
