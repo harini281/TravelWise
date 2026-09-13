@@ -30,6 +30,5 @@ public DbSet<ReadinessAssessment> ReadinessAssessments { get; set; }
 
 public DbSet<AIWorkflow> AIWorkflows { get; set; }
 public DbSet<WorkflowAuditLog> WorkflowAuditLogs { get; set; }
-   
-   
+public DbSet<User> Users { get; set; }
 }
