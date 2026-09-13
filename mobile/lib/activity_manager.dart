@@ -99,6 +99,21 @@ class _ActivityManagerState extends State<ActivityManager> {
       return;
     }
 
+    final parsedCost = double.tryParse(costController.text.trim());
+    final parsedDuration = int.tryParse(durationController.text.trim());
+    final parsedStart = DateTime.tryParse(startController.text.trim());
+    final parsedEnd = DateTime.tryParse(endController.text.trim());
+
+    if (parsedCost == null ||
+        parsedDuration == null ||
+        parsedStart == null ||
+        parsedEnd == null) {
+      setState(() {
+        error = 'Please enter valid cost, duration, and date formats (YYYY-MM-DDTHH:MM).';
+      });
+      return;
+    }
+
     try {
       setState(() {
         saving = true;
@@ -111,14 +126,10 @@ class _ActivityManagerState extends State<ActivityManager> {
         'category': category,
         'description': descriptionController.text.trim(),
         'location': locationController.text.trim(),
-        'estimatedCost': double.parse(costController.text),
-        'durationMinutes': int.parse(durationController.text),
-        'scheduledStart': DateTime.parse(startController.text)
-            .toUtc()
-            .toIso8601String(),
-        'scheduledEnd': DateTime.parse(endController.text)
-            .toUtc()
-            .toIso8601String(),
+        'estimatedCost': parsedCost,
+        'durationMinutes': parsedDuration,
+        'scheduledStart': parsedStart.toUtc().toIso8601String(),
+        'scheduledEnd': parsedEnd.toUtc().toIso8601String(),
         'status': status,
       };
 
@@ -138,14 +149,10 @@ class _ActivityManagerState extends State<ActivityManager> {
           'category': category,
           'description': descriptionController.text.trim(),
           'location': locationController.text.trim(),
-          'estimatedCost': double.parse(costController.text),
-          'durationMinutes': int.parse(durationController.text),
-          'scheduledStart': DateTime.parse(startController.text)
-              .toUtc()
-              .toIso8601String(),
-          'scheduledEnd': DateTime.parse(endController.text)
-              .toUtc()
-              .toIso8601String(),
+          'estimatedCost': parsedCost,
+          'durationMinutes': parsedDuration,
+          'scheduledStart': parsedStart.toUtc().toIso8601String(),
+          'scheduledEnd': parsedEnd.toUtc().toIso8601String(),
           'status': status,
         };
 
@@ -187,26 +194,45 @@ class _ActivityManagerState extends State<ActivityManager> {
       editingId = activity['id'];
 
       nameController.text = activity['name'] ?? '';
-      category = activity['category'] ?? 'Hiking';
+
+      const validCategories = [
+        'Hiking',
+        'Nature',
+        'Photography',
+        'Adventure',
+        'Culture',
+        'Food',
+        'Relaxation'
+      ];
+      final rawCat = activity['category']?.toString() ?? 'Hiking';
+      category = validCategories.contains(rawCat) ? rawCat : 'Hiking';
+
       descriptionController.text = activity['description'] ?? '';
       locationController.text = activity['location'] ?? '';
       costController.text = activity['estimatedCost']?.toString() ?? '';
       durationController.text =
           activity['durationMinutes']?.toString() ?? '';
 
-      startController.text =
-          DateTime.parse(activity['scheduledStart'])
-              .toLocal()
-              .toIso8601String()
-              .substring(0, 16);
+      if (activity['scheduledStart'] != null) {
+        final start = DateTime.tryParse(activity['scheduledStart'].toString());
+        if (start != null) {
+          startController.text =
+              start.toLocal().toIso8601String().substring(0, 16);
+        }
+      }
 
-      endController.text =
-          DateTime.parse(activity['scheduledEnd'])
-              .toLocal()
-              .toIso8601String()
-              .substring(0, 16);
+      if (activity['scheduledEnd'] != null) {
+        final end = DateTime.tryParse(activity['scheduledEnd'].toString());
+        if (end != null) {
+          endController.text =
+              end.toLocal().toIso8601String().substring(0, 16);
+        }
+      }
 
-      status = activity['status'] ?? 'PLANNED';
+      const validStatuses = ['PLANNED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+      final rawStatus =
+          (activity['status']?.toString() ?? 'PLANNED').toUpperCase();
+      status = validStatuses.contains(rawStatus) ? rawStatus : 'PLANNED';
     });
   }
 

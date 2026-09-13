@@ -13,10 +13,10 @@ class BudgetDashboard extends StatefulWidget {
 
   @override
   State<BudgetDashboard> createState() =>
-      _BudgetDashboardState();
+      BudgetDashboardState();
 }
 
-class _BudgetDashboardState
+class BudgetDashboardState
     extends State<BudgetDashboard> {
   Map<String, dynamic>? budget;
 

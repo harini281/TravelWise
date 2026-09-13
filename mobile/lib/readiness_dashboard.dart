@@ -43,39 +43,26 @@ class _ReadinessDashboardState
         error = '';
       });
 
-      final requirementsResponse = await http.get(
+      final response = await http.get(
         Uri.parse(
-          '$apiUrl/api/Readiness/requirements/trip/${widget.tripId}',
+          '$apiUrl/api/Readiness/trip/${widget.tripId}',
         ),
       );
 
-      final checklistResponse = await http.get(
-        Uri.parse(
-          '$apiUrl/api/Readiness/items/trip/${widget.tripId}',
-        ),
-      );
-
-      if (requirementsResponse.statusCode != 200) {
+      if (response.statusCode != 200) {
         throw Exception(
-          'Failed to load requirements. '
-          'Status: ${requirementsResponse.statusCode}',
+          'Failed to load readiness information. '
+          'Status: ${response.statusCode}',
         );
       }
 
-      if (checklistResponse.statusCode != 200) {
-        throw Exception(
-          'Failed to load readiness checklist. '
-          'Status: ${checklistResponse.statusCode}',
-        );
-      }
+      final data = jsonDecode(response.body);
 
       setState(() {
         requirements =
-            jsonDecode(requirementsResponse.body);
-
+            (data['requirements'] ?? data['travelRequirements'] ?? []) as List<dynamic>;
         checklist =
-            jsonDecode(checklistResponse.body);
-
+            (data['items'] ?? data['readinessItems'] ?? []) as List<dynamic>;
         loading = false;
       });
     } catch (e) {
@@ -273,7 +260,7 @@ class _ReadinessDashboardState
 
                   Text(
                     'Status: '
-                    '${assessment!['status'] ?? assessment!['readinessStatus'] ?? '-'}',
+                    '${assessment!['readinessLevel'] ?? assessment!['status'] ?? assessment!['readinessStatus'] ?? '-'}',
                   ),
 
                   const SizedBox(height: 10),

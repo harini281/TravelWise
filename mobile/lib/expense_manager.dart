@@ -239,18 +239,21 @@ class _ExpenseManagerState extends State<ExpenseManager> {
       descriptionController.text =
           expense['description']?.toString() ?? '';
 
-      paymentMethod =
-          expense['paymentMethod']?.toString() ?? 'CASH';
+      const validMethods = ['CASH', 'CARD', 'BANK_TRANSFER'];
+      final rawMethod =
+          (expense['paymentMethod']?.toString() ?? 'CASH').toUpperCase();
+      paymentMethod = validMethods.contains(rawMethod) ? rawMethod : 'CASH';
 
       final expenseDate = expense['expenseDate'];
 
       if (expenseDate != null) {
-        final date = DateTime.parse(
+        final date = DateTime.tryParse(
           expenseDate.toString(),
-        ).toLocal();
-
-        dateController.text =
-            date.toIso8601String().substring(0, 16);
+        );
+        if (date != null) {
+          dateController.text =
+              date.toLocal().toIso8601String().substring(0, 16);
+        }
       }
     });
   }

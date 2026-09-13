@@ -172,10 +172,10 @@ class _RiskDashboardState extends State<RiskDashboard> {
                     CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Location: ${weather!['locationName'] ?? '-'}',
+                    'Location: ${weather!['location'] ?? weather!['locationName'] ?? '-'}',
                   ),
                   Text(
-                    'Temperature: ${weather!['temperatureCelsius'] ?? '-'} °C',
+                    'Temperature: ${weather!['temperatureC'] ?? weather!['temperatureCelsius'] ?? '-'} °C',
                   ),
                   Text(
                     'Wind Speed: ${weather!['windSpeedKph'] ?? '-'} km/h',
