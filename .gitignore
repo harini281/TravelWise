@@ -33,3 +33,9 @@ ENV/
 Thumbs.db
 *.tmp
 *.swp
+
+# Secrets & Environment
+.env
+.env.*
+!.env.example
+*.local
