@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { API_BASE_URL } from "./apiConfig";
+import AuthBar from "./components/AuthBar";
 import BudgetDashboard from "./components/BudgetDashboard";
 import ExpenseManager from "./components/ExpenseManager";
 import ActivityManager from "./components/ActivityManager";
@@ -11,11 +13,37 @@ function App() {
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [budgetRefreshKey, setBudgetRefreshKey] = useState(0);
 
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("travelwise_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    try {
+      sessionStorage.setItem("travelwise_user", JSON.stringify(userData));
+    } catch {
+      // storage unavailable or quota exceeded
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    try {
+      sessionStorage.removeItem("travelwise_user");
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
-    fetch("http://localhost:5179/api/Trips/2")
+    fetch(`${API_BASE_URL}/api/Trips/2`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to load trip.");
@@ -50,8 +78,10 @@ function App() {
   }
 
   return (
-    <div>
-      <h1>TravelWise</h1>
+    <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "20px", fontFamily: "sans-serif" }}>
+      <h1 style={{ marginBottom: "16px" }}>TravelWise</h1>
+
+      <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} />
 
       <h2>Trip Dashboard</h2>
 
@@ -123,8 +153,8 @@ function App() {
 
       <hr />
 
-       <WorkflowDashboard tripId={2} />
-        </div>
+      <WorkflowDashboard tripId={2} user={user} />
+    </div>
   );
 }
 

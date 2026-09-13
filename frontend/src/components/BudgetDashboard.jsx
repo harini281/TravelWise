@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "../apiConfig";
 
 function BudgetDashboard({
   budgetId = 2,
@@ -15,7 +16,7 @@ function BudgetDashboard({
         setError("");
 
         const response = await fetch(
-          `http://localhost:5179/api/Budgets/${budgetId}/health`
+          `${API_BASE_URL}/api/Budgets/${budgetId}/health`
         );
 
         if (!response.ok) {

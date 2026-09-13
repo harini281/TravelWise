@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { API_BASE_URL } from "../apiConfig";
 
-const API_URL = "http://localhost:5179";
+const API_URL = API_BASE_URL;
 
 function RiskDashboard({ tripId = 2 }) {
   const [weather, setWeather] = useState(null);
