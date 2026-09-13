@@ -66,6 +66,21 @@ function RiskDashboard({ tripId = 2 }) {
     }
   };
 
+  const getRecommendation = (level) => {
+    switch (level) {
+      case "LOW":
+        return "Weather conditions are favorable. Safe to proceed with scheduled outdoor activities.";
+      case "MODERATE":
+        return "Weather may affect some outdoor plans. Exercise caution and check daily updates.";
+      case "HIGH":
+        return "Adverse weather conditions expected. Consider rescheduling outdoor activities or choosing indoor alternatives.";
+      case "CRITICAL":
+        return "Severe weather warning. High-risk activities must be halted or reviewed immediately.";
+      default:
+        return "Continue monitoring local weather updates.";
+    }
+  };
+
   return (
     <section>
       <h2>Travel Safety & Risk Management</h2>
@@ -93,8 +108,8 @@ function RiskDashboard({ tripId = 2 }) {
       </div>
 
       {error && (
-        <p>
-          <strong>Error:</strong> {error}
+        <p style={{ color: "red" }}>
+          <strong>Notice / Safe Failure:</strong> {error}
         </p>
       )}
 
@@ -158,7 +173,7 @@ function RiskDashboard({ tripId = 2 }) {
 
           <p>
             <strong>Recommendation:</strong>{" "}
-            {risk.recommendation}
+            {risk.recommendation || getRecommendation(risk.riskLevel)}
           </p>
         </div>
       )}

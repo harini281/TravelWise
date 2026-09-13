@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+
 import BudgetDashboard from "./components/BudgetDashboard";
 import ExpenseManager from "./components/ExpenseManager";
 import ActivityManager from "./components/ActivityManager";
 import RiskDashboard from "./components/RiskDashboard";
+import ReadinessDashboard from "./components/ReadinessDashboard";
+import WorkflowDashboard from "./components/WorkflowDashboard";
 
 function App() {
   const [trip, setTrip] = useState(null);
@@ -53,11 +56,13 @@ function App() {
       <h2>Trip Dashboard</h2>
 
       <p>
-        <strong>Starting Place:</strong> {trip.startingPlace}
+        <strong>Starting Place:</strong>{" "}
+        {trip.startingPlace}
       </p>
 
       <p>
-        <strong>Destination:</strong> {trip.destination}
+        <strong>Destination:</strong>{" "}
+        {trip.destination}
       </p>
 
       <p>
@@ -71,19 +76,23 @@ function App() {
       </p>
 
       <p>
-        <strong>Budget:</strong> LKR {trip.budgetAmount}
+        <strong>Budget:</strong>{" "}
+        LKR {trip.budgetAmount}
       </p>
 
       <p>
-        <strong>Travellers:</strong> {trip.travellerCount}
+        <strong>Travellers:</strong>{" "}
+        {trip.travellerCount}
       </p>
 
       <p>
-        <strong>Trip Type:</strong> {trip.tripType}
+        <strong>Trip Type:</strong>{" "}
+        {trip.tripType}
       </p>
 
       <p>
-        <strong>Status:</strong> {trip.status}
+        <strong>Status:</strong>{" "}
+        {trip.status}
       </p>
 
       <hr />
@@ -99,9 +108,27 @@ function App() {
         tripId={2}
         onExpenseChanged={refreshBudget}
       />
+
       <hr />
-<RiskDashboard tripId={2} />
-    </div>
+
+      <ActivityManager tripId={2} />
+
+      <hr />
+
+      <RiskDashboard tripId={2} />
+
+      <hr />
+
+      <ReadinessDashboard tripId={2} />
+
+      <hr />
+
+      <ReadinessDashboard tripId={2} />
+
+        <hr />
+
+       <WorkflowDashboard tripId={2} />
+        </div>
   );
 }
 
