@@ -16,11 +16,16 @@ public class WeatherService
         string location)
     {
         if (string.IsNullOrWhiteSpace(location))
+        {
             return null;
+        }
 
         var encodedLocation = Uri.EscapeDataString(location);
 
-        // STEP 1: Convert location name into latitude/longitude
+        // -------------------------------------------------
+        // STEP 1: Convert location name to latitude/longitude
+        // -------------------------------------------------
+
         var geocodingUrl =
             $"https://geocoding-api.open-meteo.com/v1/search" +
             $"?name={encodedLocation}" +
@@ -32,7 +37,9 @@ public class WeatherService
             await _httpClient.GetAsync(geocodingUrl);
 
         if (!geocodingResponse.IsSuccessStatusCode)
+        {
             return null;
+        }
 
         var geocodingJson =
             await geocodingResponse.Content.ReadAsStringAsync();
@@ -40,14 +47,17 @@ public class WeatherService
         using var geocodingDocument =
             JsonDocument.Parse(geocodingJson);
 
-        if (!geocodingDocument.RootElement
-                .TryGetProperty("results", out var results))
+        if (!geocodingDocument.RootElement.TryGetProperty(
+                "results",
+                out var results))
         {
             return null;
         }
 
         if (results.GetArrayLength() == 0)
+        {
             return null;
+        }
 
         var firstResult = results[0];
 
@@ -69,11 +79,16 @@ public class WeatherService
         var longitude = longitudeElement.GetDouble();
 
         var resolvedLocation =
-            firstResult.TryGetProperty("name", out var nameElement)
+            firstResult.TryGetProperty(
+                "name",
+                out var nameElement)
                 ? nameElement.GetString() ?? location
                 : location;
 
-        // STEP 2: Get current weather
+        // -------------------------------------------------
+        // STEP 2: Get current weather from Open-Meteo
+        // -------------------------------------------------
+
         var weatherUrl =
             $"https://api.open-meteo.com/v1/forecast" +
             $"?latitude={latitude}" +
@@ -85,7 +100,9 @@ public class WeatherService
             await _httpClient.GetAsync(weatherUrl);
 
         if (!weatherResponse.IsSuccessStatusCode)
+        {
             return null;
+        }
 
         var weatherJson =
             await weatherResponse.Content.ReadAsStringAsync();
@@ -93,8 +110,34 @@ public class WeatherService
         using var weatherDocument =
             JsonDocument.Parse(weatherJson);
 
-        if (!weatherDocument.RootElement
-                .TryGetProperty("current", out var current))
+        if (!weatherDocument.RootElement.TryGetProperty(
+                "current",
+                out var current))
+        {
+            return null;
+        }
+
+        // -------------------------------------------------
+        // STEP 3: Convert Open-Meteo response into our DTO
+        // -------------------------------------------------
+
+        if (!current.TryGetProperty(
+                "temperature_2m",
+                out var temperatureElement))
+        {
+            return null;
+        }
+
+        if (!current.TryGetProperty(
+                "wind_speed_10m",
+                out var windElement))
+        {
+            return null;
+        }
+
+        if (!current.TryGetProperty(
+                "weather_code",
+                out var weatherCodeElement))
         {
             return null;
         }
@@ -104,16 +147,13 @@ public class WeatherService
             Location = resolvedLocation,
 
             TemperatureC =
-                current.GetProperty("temperature_2m")
-                    .GetDecimal(),
+                temperatureElement.GetDecimal(),
 
             WindSpeedKph =
-                current.GetProperty("wind_speed_10m")
-                    .GetDecimal(),
+                windElement.GetDecimal(),
 
             WeatherCode =
-                current.GetProperty("weather_code")
-                    .GetInt32(),
+                weatherCodeElement.GetInt32(),
 
             Source = "Open-Meteo"
         };

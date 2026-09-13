@@ -1,5 +1,6 @@
 using TravelWise.API.Models;
 using Microsoft.EntityFrameworkCore;
+using TravelWise.API.Models;
 
 
 namespace TravelWise.API.Data;
@@ -27,6 +28,9 @@ public class TravelWiseDbContext : DbContext
     public DbSet<TravelRequirement> TravelRequirements { get; set; }
 public DbSet<ReadinessItem> ReadinessItems { get; set; }
 public DbSet<ReadinessAssessment> ReadinessAssessments { get; set; }
+
+public DbSet<AIWorkflow> AIWorkflows { get; set; }
+public DbSet<WorkflowAuditLog> WorkflowAuditLogs { get; set; }
    
    
 }
