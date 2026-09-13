@@ -1,11 +1,13 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
 function AuthBar({ user, onLogin, onLogout }) {
+  const [showModal, setShowModal] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showQuickFill, setShowQuickFill] = useState(false);
 
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
@@ -29,10 +31,10 @@ function AuthBar({ user, onLogin, onLogout }) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error("Invalid username or password.");
+          throw new Error("Invalid credentials. Please check username and password.");
         }
         const text = await response.text();
-        throw new Error(text || "Login failed.");
+        throw new Error(text || "Unable to sign in. Please try again.");
       }
 
       const data = await response.json();
@@ -44,6 +46,7 @@ function AuthBar({ user, onLogin, onLogout }) {
       });
 
       setPassword("");
+      setShowModal(false);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -51,149 +54,244 @@ function AuthBar({ user, onLogin, onLogout }) {
     }
   };
 
-  const setDemoPersona = (u, p) => {
+  const fillPersona = (u, p) => {
     setUsername(u);
     setPassword(p);
     setError("");
   };
 
-  const getRoleBadgeStyle = (role) => {
+  const getRoleBadgeClass = (role) => {
     switch (role?.toLowerCase()) {
       case "admin":
-        return { backgroundColor: "#dc2626", color: "#fff" };
+        return "badge badge-danger";
       case "reviewer":
-        return { backgroundColor: "#9333ea", color: "#fff" };
+        return "badge badge-ai";
       default:
-        return { backgroundColor: "#2563eb", color: "#fff" };
+        return "badge badge-info";
     }
   };
 
   return (
-    <div
-      style={{
-        border: "1px solid #d1d5db",
-        borderRadius: "8px",
-        padding: "12px 16px",
-        marginBottom: "20px",
-        backgroundColor: "#f9fafb",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-      }}
-    >
+    <>
       {user ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "10px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span>👤 Logged in as: <strong>{user.username}</strong></span>
-            <span style={{ fontSize: "0.85em", color: "#6b7280" }}>({user.email})</span>
-            <span
-              style={{
-                padding: "2px 8px",
-                borderRadius: "12px",
-                fontSize: "0.8em",
-                fontWeight: "bold",
-                ...getRoleBadgeStyle(user.role),
-              }}
-            >
-              {user.role}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontWeight: "600", fontSize: "0.88rem", color: "var(--text-primary)" }}>
+                {user.username}
+              </span>
+              <span className={getRoleBadgeClass(user.role)}>
+                {user.role}
+              </span>
+            </div>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              {user.email}
             </span>
           </div>
-
           <button
             type="button"
+            className="btn btn-outline btn-sm"
             onClick={onLogout}
-            style={{
-              padding: "6px 14px",
-              backgroundColor: "#ef4444",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontWeight: "500",
-            }}
+            title="Sign out of account"
           >
-            Logout
+            Sign Out
           </button>
         </div>
       ) : (
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-            <h4 style={{ margin: 0, fontSize: "1rem" }}>🔐 User Authentication</h4>
-            <div style={{ display: "flex", gap: "6px", fontSize: "0.8rem" }}>
-              <span style={{ color: "#6b7280", alignSelf: "center" }}>Quick Fill:</span>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={() => setShowModal(true)}
+        >
+          🔐 Sign In
+        </button>
+      )}
+
+      {/* Modern Login Modal */}
+      {showModal && !user && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.6)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: "16px",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--bg-surface)",
+              borderRadius: "var(--radius-lg)",
+              boxShadow: "var(--shadow-lg)",
+              border: "1px solid var(--border-color)",
+              width: "100%",
+              maxWidth: "420px",
+              padding: "32px",
+              position: "relative",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                background: "transparent",
+                border: "none",
+                fontSize: "1.2rem",
+                cursor: "pointer",
+                color: "var(--text-muted)",
+              }}
+              title="Close modal"
+            >
+              ✕
+            </button>
+
+            <div style={{ textAlign: "center", marginBottom: "24px" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  backgroundColor: "var(--primary-light)",
+                  color: "var(--primary)",
+                  borderRadius: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.5rem",
+                  margin: "0 auto 12px",
+                }}
+              >
+                ✈️
+              </div>
+              <h2 style={{ fontSize: "1.4rem", fontWeight: "700", color: "var(--text-primary)", margin: "0 0 4px" }}>
+                TravelWise
+              </h2>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>
+                Plan smarter. Travel safer.
+              </p>
+            </div>
+
+            {error && (
+              <div
+                style={{
+                  backgroundColor: "var(--danger-bg)",
+                  border: "1px solid var(--danger-border)",
+                  color: "var(--danger)",
+                  padding: "10px 14px",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "0.85rem",
+                  marginBottom: "16px",
+                }}
+              >
+                ⚠️ {error}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="login-username">
+                  Email / Username
+                </label>
+                <input
+                  id="login-username"
+                  className="form-input"
+                  type="text"
+                  placeholder="Enter your username or email"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="login-password">
+                  Password
+                </label>
+                <input
+                  id="login-password"
+                  className="form-input"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ width: "100%", padding: "11px", marginTop: "8px" }}
+                disabled={loading}
+              >
+                {loading ? "Authenticating..." : "Sign In"}
+              </button>
+            </form>
+
+            {/* Subtle Viva Demo Accordion */}
+            <div style={{ marginTop: "20px", paddingTop: "14px", borderTop: "1px dashed var(--border-color)" }}>
               <button
                 type="button"
-                onClick={() => setDemoPersona("traveller", "Traveller123!")}
-                style={{ padding: "3px 8px", fontSize: "0.75rem", cursor: "pointer" }}
+                onClick={() => setShowQuickFill(!showQuickFill)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--secondary)",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  padding: "4px 0",
+                  fontWeight: "500",
+                }}
               >
-                Traveller
+                <span>💡 Examiner Demo Quick-Fill</span>
+                <span>{showQuickFill ? "▲" : "▼"}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setDemoPersona("reviewer", "Reviewer123!")}
-                style={{ padding: "3px 8px", fontSize: "0.75rem", cursor: "pointer" }}
-              >
-                Reviewer
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoPersona("admin", "Admin123!")}
-                style={{ padding: "3px 8px", fontSize: "0.75rem", cursor: "pointer" }}
-              >
-                Admin
-              </button>
+
+              {showQuickFill && (
+                <div style={{ display: "flex", gap: "6px", marginTop: "10px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => fillPersona("traveller", "Traveller123!")}
+                  >
+                    Traveller
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => fillPersona("reviewer", "Reviewer123!")}
+                  >
+                    Reviewer
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => fillPersona("admin", "Admin123!")}
+                  >
+                    Admin
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-
-          <form
-            onSubmit={handleLogin}
-            style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}
-          >
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              style={{ padding: "6px 10px", borderRadius: "4px", border: "1px solid #ccc" }}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{ padding: "6px 10px", borderRadius: "4px", border: "1px solid #ccc" }}
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: "6px 14px",
-                backgroundColor: "#2563eb",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontWeight: "500",
-              }}
-            >
-              {loading ? "Logging in..." : "Login"}
-            </button>
-          </form>
-
-          {error && (
-            <p style={{ color: "#dc2626", margin: "8px 0 0", fontSize: "0.85rem" }}>
-              ⚠️ {error}
-            </p>
-          )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
