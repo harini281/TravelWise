@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelWise.API.Data;
+using TravelWise.API.DTOs;
 using TravelWise.API.Models;
+using TravelWise.API.Services;
 
 namespace TravelWise.API.Controllers
 {
@@ -10,10 +12,83 @@ namespace TravelWise.API.Controllers
     public class WorkflowController : ControllerBase
     {
         private readonly TravelWiseDbContext _context;
+        private readonly AIServiceClient _aiServiceClient;
 
-        public WorkflowController(TravelWiseDbContext context)
+        public WorkflowController(
+            TravelWiseDbContext context,
+            AIServiceClient aiServiceClient)
         {
             _context = context;
+            _aiServiceClient = aiServiceClient;
+        }
+
+        // -------------------------------------------------
+        // RUN AI WORKFLOW FOR TRIP
+        // POST /api/Workflow/trip/{tripId}/run
+        // -------------------------------------------------
+
+        [HttpPost("trip/{tripId}/run")]
+        public async Task<IActionResult> RunTripWorkflow(int tripId)
+        {
+            var tripExists = await _context.Trips
+                .AnyAsync(t => t.Id == tripId);
+
+            if (!tripExists)
+            {
+                return NotFound(new
+                {
+                    message = $"Trip with ID {tripId} was not found."
+                });
+            }
+
+            var workflow = new AIWorkflow
+            {
+                TripId = tripId,
+                Status = "PLANNING",
+                ApprovalStatus = "PENDING",
+                ValidationPassed = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.AIWorkflows.Add(workflow);
+            await _context.SaveChangesAsync();
+
+            await AddAuditLog(
+                workflow.Id,
+                "WORKFLOW_INITIATED",
+                "LangGraph multi-agent planning workflow initiated.",
+                "USER"
+            );
+
+            var aiResponse = await _aiServiceClient.RunTripWorkflowAsync(tripId, workflow.Id);
+
+            workflow.Status = string.IsNullOrWhiteSpace(aiResponse.WorkflowStatus)
+                ? "AWAITING_APPROVAL"
+                : aiResponse.WorkflowStatus;
+
+            workflow.ApprovalStatus = string.IsNullOrWhiteSpace(aiResponse.ApprovalStatus)
+                ? "PENDING"
+                : aiResponse.ApprovalStatus;
+
+            workflow.ValidationPassed = aiResponse.ValidationResults.TryGetValue("passed", out var p) &&
+                (p is bool b ? b : p?.ToString()?.ToLower() == "true");
+
+            workflow.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            await AddAuditLog(
+                workflow.Id,
+                "AGENTS_EVALUATION_COMPLETED",
+                $"Agents completed analysis. Status: {workflow.Status}.",
+                "AI_SERVICE"
+            );
+
+            return Ok(new
+            {
+                Workflow = workflow,
+                AIResult = aiResponse
+            });
         }
 
         // -------------------------------------------------

@@ -72,6 +72,18 @@ builder.Services
 
 
 // ---------------------------------------------------------
+// Agentic AI Service HTTP Client (LangGraph Python Service)
+// ---------------------------------------------------------
+
+builder.Services
+    .AddHttpClient<AIServiceClient>(client =>
+    {
+        client.BaseAddress = new Uri("http://localhost:8000");
+        client.Timeout = TimeSpan.FromSeconds(45);
+    });
+
+
+// ---------------------------------------------------------
 // Build application
 // ---------------------------------------------------------
 
