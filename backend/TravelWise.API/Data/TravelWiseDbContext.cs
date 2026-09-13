@@ -1,4 +1,3 @@
-using TravelWise.API.Models;
 using Microsoft.EntityFrameworkCore;
 using TravelWise.API.Models;
 
