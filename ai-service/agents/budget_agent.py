@@ -5,13 +5,10 @@ from tools.budget_tools import get_trip_budget, get_budget_health
 def run_budget_agent(state: TravelWiseState) -> TravelWiseState:
     """
     Budget Agent.
-
-    Retrieves real budget information through the controlled
-    Budget Tool and produces a structured budget analysis.
+    Evaluates budget health using shared trip context first,
+    or falls back to the controlled budget tool.
     """
-
     trip_id = state.get("trip_id")
-
     state["agent_results"] = state.get("agent_results", {})
 
     if not trip_id:
@@ -21,29 +18,49 @@ def run_budget_agent(state: TravelWiseState) -> TravelWiseState:
         }
         return state
 
-    budget_result = get_trip_budget(trip_id)
+    budget_context = state.get("budget_context", {})
+    budget_data = None
 
-    if budget_result.get("status") != "SUCCESS":
+    # 1. First check shared trip context passed into the workflow
+    if budget_context and ("total_budget" in budget_context or "totalAmount" in budget_context):
+        total_budget = float(budget_context.get("total_budget") or budget_context.get("totalAmount", 0))
+        total_spent = float(budget_context.get("total_spent") or budget_context.get("spentAmount", 0))
+        if "expenses" in budget_context:
+            total_spent = sum(float(e.get("amount", 0)) for e in budget_context["expenses"])
+        budget_data = {
+            "total_budget": total_budget,
+            "total_spent": total_spent
+        }
+    else:
+        # 2. Invoke controlled budget tool if context was not provided
+        budget_result = get_trip_budget(trip_id)
+        if budget_result.get("status") == "SUCCESS":
+            b = budget_result.get("budget", {})
+            total_budget = float(b.get("totalAmount", 0))
+            total_spent = sum(float(e.get("amount", 0)) for e in b.get("expenses", []))
+            budget_data = {
+                "total_budget": total_budget,
+                "total_spent": total_spent
+            }
+        elif state.get("trip_context", {}).get("budget_amount"):
+            # Fallback to trip_context base budget
+            total_budget = float(state["trip_context"]["budget_amount"])
+            budget_data = {
+                "total_budget": total_budget,
+                "total_spent": 0.0
+            }
+
+    if not budget_data:
         state["agent_results"]["budget"] = {
-            "status": budget_result.get("status", "ERROR"),
+            "status": "ERROR",
             "trip_id": trip_id,
-            "message": budget_result.get(
-                "message",
-                "Unable to retrieve budget information."
-            )
+            "message": "Unable to retrieve budget information from context or API."
         }
         return state
 
-    budget = budget_result["budget"]
-
-    total_budget = float(budget.get("totalAmount", 0))
-    total_spent = sum(
-        float(expense.get("amount", 0))
-        for expense in budget.get("expenses", [])
-    )
-
+    total_budget = budget_data["total_budget"]
+    total_spent = budget_data["total_spent"]
     remaining_budget = total_budget - total_spent
-
     spending_percentage = (
         (total_spent / total_budget) * 100
         if total_budget > 0
@@ -76,51 +93,4 @@ def run_budget_agent(state: TravelWiseState) -> TravelWiseState:
         }
     }
 
-
-
     return state
-def get_budget_health(budget_id: int) -> dict:
-    """
-    Retrieves deterministic budget-health information
-    from the TravelWise ASP.NET Core API.
-    """
-
-    if budget_id <= 0:
-        return {
-            "status": "ERROR",
-            "message": "Invalid budget ID."
-        }
-
-    url = f"{API_BASE_URL}/api/Budgets/{budget_id}/health"
-
-    try:
-        response = httpx.get(url, timeout=10.0)
-
-        if response.status_code == 404:
-            return {
-                "status": "NOT_FOUND",
-                "budget_id": budget_id,
-                "message": "Budget was not found."
-            }
-
-        response.raise_for_status()
-
-        return {
-            "status": "SUCCESS",
-            "budget_id": budget_id,
-            "health": response.json()
-        }
-
-    except httpx.TimeoutException:
-        return {
-            "status": "ERROR",
-            "budget_id": budget_id,
-            "message": "Budget health API request timed out."
-        }
-
-    except httpx.HTTPError as error:
-        return {
-            "status": "ERROR",
-            "budget_id": budget_id,
-            "message": f"Budget health API request failed: {error}"
-        }

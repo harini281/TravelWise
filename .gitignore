@@ -1,4 +1,4 @@
-﻿# .NET / Visual Studio
+# .NET / Visual Studio
 bin/
 obj/
 *.user
@@ -20,9 +20,9 @@ frontend/dist/
 *.log
 
 # Python
-__pycache__/
-*.py[cod]
-*$py.class
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
 .venv/
 venv/
 ENV/
