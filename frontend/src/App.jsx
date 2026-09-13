@@ -123,10 +123,6 @@ function App() {
 
       <hr />
 
-      <ReadinessDashboard tripId={2} />
-
-        <hr />
-
        <WorkflowDashboard tripId={2} />
         </div>
   );
