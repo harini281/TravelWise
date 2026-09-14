@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../apiConfig";
 
 const API_URL = API_BASE_URL;
 
-function RiskDashboard({ tripId = 2 }) {
+function RiskDashboard({ tripId }) {
   const [weather, setWeather] = useState(null);
   const [risk, setRisk] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
@@ -54,8 +54,22 @@ function RiskDashboard({ tripId = 2 }) {
   };
 
   useEffect(() => {
-    loadWeather();
+    if (tripId) {
+      loadWeather();
+    } else {
+      setWeather(null);
+      setRisk(null);
+    }
   }, [tripId]);
+
+  if (!tripId) {
+    return (
+      <section>
+        <h2 className="page-title">Travel Safety & Risk</h2>
+        <p className="body-text">Select a saved trip to view live weather and risk assessment.</p>
+      </section>
+    );
+  }
 
   const getRiskBadge = (level) => {
     switch (level?.toUpperCase()) {
@@ -138,7 +152,7 @@ function RiskDashboard({ tripId = 2 }) {
                 </span>
                 <div>
                   <strong style={{ fontSize: "1.05rem", color: "var(--text-primary)", display: "block" }}>
-                    Ella, Sri Lanka
+                    {weather.location || weather.resolvedLocation || "Destination"}
                   </strong>
                   <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
                     Wind: {weather.windSpeedKmh} km/h

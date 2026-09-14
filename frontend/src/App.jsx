@@ -492,23 +492,23 @@ function App() {
               )}
 
               {activeTab === "budget" && (
-                <ExpenseManager tripId={trip?.id || 2} totalBudget={trip?.budgetAmount ?? 80000} />
+                <ExpenseManager tripId={trip?.id} />
               )}
 
               {activeTab === "activities" && (
-                <ActivityManager tripId={trip?.id || 2} />
+                <ActivityManager tripId={trip?.id} />
               )}
 
               {activeTab === "safety" && (
-                <RiskDashboard tripId={trip?.id || 2} destination={trip?.destination || "Ella"} />
+                <RiskDashboard tripId={trip?.id} destination={trip?.destination} />
               )}
 
               {activeTab === "readiness" && (
-                <ReadinessDashboard tripId={trip?.id || 2} />
+                <ReadinessDashboard tripId={trip?.id} />
               )}
 
               {activeTab === "ai_planner" && (
-                <WorkflowDashboard tripId={trip?.id || 2} user={user} />
+                <WorkflowDashboard tripId={trip?.id} user={user} />
               )}
 
               {activeTab === "profile" && (
@@ -536,7 +536,7 @@ function App() {
                   <p style={{ color: "var(--text-secondary)", marginBottom: "16px", lineHeight: "1.6" }}>
                     As an authorized <strong>{user.role}</strong>, you have access to Human-in-the-Loop decision controls over AI-generated plans.
                   </p>
-                  <WorkflowDashboard tripId={trip?.id || 2} user={user} />
+                  <WorkflowDashboard tripId={trip?.id} user={user} />
                 </div>
               )}
 

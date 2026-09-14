@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../apiConfig";
 
 const API_URL = API_BASE_URL;
 
-function ReadinessDashboard({ tripId = 2 }) {
+function ReadinessDashboard({ tripId }) {
   const [requirements, setRequirements] = useState([]);
   const [items, setItems] = useState([]);
   const [assessment, setAssessment] = useState(null);
@@ -55,7 +55,14 @@ function ReadinessDashboard({ tripId = 2 }) {
   };
 
   useEffect(() => {
-    loadReadiness();
+    if (tripId) {
+      loadReadiness();
+    } else {
+      setRequirements([]);
+      setItems([]);
+      setAssessment(null);
+      setLoading(false);
+    }
   }, [tripId]);
 
   const assessReadiness = async () => {
@@ -199,6 +206,15 @@ function ReadinessDashboard({ tripId = 2 }) {
     setEditingItemId(null);
     setShowItemModal(false);
   };
+
+  if (!tripId) {
+    return (
+      <section>
+        <h2 className="page-title">Travel Readiness</h2>
+        <p className="body-text">Select a saved trip to manage passport and readiness checks.</p>
+      </section>
+    );
+  }
 
   const getStatusBadge = (status) => {
     switch (status?.toUpperCase()) {

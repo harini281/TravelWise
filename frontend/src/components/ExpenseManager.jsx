@@ -11,7 +11,7 @@ const CATEGORY_MAP = {
   5: "Miscellaneous",
 };
 
-function ExpenseManager({ tripId = 2, onExpenseChanged }) {
+function ExpenseManager({ tripId, onExpenseChanged }) {
   const [expenses, setExpenses] = useState([]);
   const [budgetHealth, setBudgetHealth] = useState(null);
   const [error, setError] = useState("");
@@ -53,7 +53,13 @@ function ExpenseManager({ tripId = 2, onExpenseChanged }) {
   };
 
   useEffect(() => {
-    loadExpenses();
+    if (tripId) {
+      loadExpenses();
+    } else {
+      setExpenses([]);
+      setBudgetHealth(null);
+      setLoading(false);
+    }
   }, [tripId]);
 
   const handleChange = (event) => {
@@ -172,7 +178,16 @@ function ExpenseManager({ tripId = 2, onExpenseChanged }) {
     }
   };
 
-  const totalBudget = budgetHealth?.totalBudget ?? 80000;
+  if (!tripId) {
+    return (
+      <section>
+        <h2 className="page-title">Budget & Expenses</h2>
+        <p className="body-text">Select a saved trip to view its budget and expenses.</p>
+      </section>
+    );
+  }
+
+  const totalBudget = budgetHealth?.totalBudget ?? 0;
   const totalSpent = budgetHealth?.totalSpent ?? 0;
   const remainingBudget = budgetHealth?.remainingBudget ?? (totalBudget - totalSpent);
   const spendPct = budgetHealth?.spendingPercentage ?? (totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0);
