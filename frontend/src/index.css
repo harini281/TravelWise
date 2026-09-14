@@ -807,3 +807,76 @@ p, .body-text {
   text-decoration: underline;
   background-color: #eff6ff;
 }
+
+/* Celebration Modal & Confetti Bloom Animation */
+@keyframes celebrationBloom {
+  0% {
+    transform: scale(0.75) rotate(-3deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.3), 0 15px 35px rgba(15, 23, 42, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(34, 197, 94, 0.55), 0 20px 45px rgba(15, 23, 42, 0.3);
+  }
+}
+
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.celebration-card {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 520px;
+  width: 100%;
+  padding: 36px 28px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: celebrationBloom 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, pulseGlow 3s infinite;
+  border: 2px solid #86efac;
+}
+
+.confetti-particle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  animation: floatConfetti 3s ease-in-out infinite;
+}
+
+@keyframes floatConfetti {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-25px) rotate(180deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(0) rotate(360deg);
+    opacity: 1;
+  }
+}
