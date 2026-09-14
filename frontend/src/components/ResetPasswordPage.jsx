@@ -67,25 +67,14 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#F8FAFC",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        fontFamily: "'Inter', sans-serif",
-      }}
-    >
+    <div className="auth-page-container">
       <header style={{ padding: "24px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button
           type="button"
           onClick={onNavigateLogin}
+          className="auth-link-btn"
           style={{
-            background: "none",
-            border: "none",
             color: "#64748B",
-            cursor: "pointer",
             fontSize: "0.92rem",
             fontWeight: 500,
           }}
@@ -98,15 +87,7 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
       </header>
 
       <main style={{ maxWidth: "460px", width: "100%", margin: "20px auto", padding: "0 20px" }}>
-        <div
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderRadius: "16px",
-            boxShadow: "0 10px 30px rgba(15, 43, 72, 0.08)",
-            border: "1px solid #E2E8F0",
-            padding: "40px 36px",
-          }}
-        >
+        <div className="auth-card">
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
             <TravelWiseLogo size={32} showTagline={false} />
             <h1
@@ -169,17 +150,7 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
               <button
                 type="button"
                 onClick={onNavigateLogin}
-                style={{
-                  width: "100%",
-                  backgroundColor: "#0F2B48",
-                  color: "#FFFFFF",
-                  border: "none",
-                  padding: "13px 20px",
-                  borderRadius: "8px",
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="auth-btn-primary"
               >
                 Sign In Now
               </button>
@@ -187,10 +158,7 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
           ) : (
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: "16px" }}>
-                <label
-                  htmlFor="reset-email"
-                  style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "#334155", marginBottom: "6px" }}
-                >
+                <label htmlFor="reset-email" className="auth-label">
                   Email Address
                 </label>
                 <input
@@ -200,22 +168,12 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid #CBD5E1",
-                    fontSize: "0.92rem",
-                    boxSizing: "border-box",
-                  }}
+                  className="auth-input no-icon"
                 />
               </div>
 
               <div style={{ marginBottom: "16px" }}>
-                <label
-                  htmlFor="reset-token"
-                  style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "#334155", marginBottom: "6px" }}
-                >
+                <label htmlFor="reset-token" className="auth-label">
                   Reset Token
                 </label>
                 <input
@@ -225,26 +183,16 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
                   onChange={(e) => setToken(e.target.value)}
                   placeholder="Paste 64-character token from email link"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid #CBD5E1",
-                    fontSize: "0.88rem",
-                    fontFamily: "monospace",
-                    boxSizing: "border-box",
-                  }}
+                  className="auth-input no-icon"
+                  style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
                 />
               </div>
 
               <div style={{ marginBottom: "16px" }}>
-                <label
-                  htmlFor="reset-new-password"
-                  style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "#334155", marginBottom: "6px" }}
-                >
+                <label htmlFor="reset-new-password" className="auth-label">
                   New Password
                 </label>
-                <div style={{ position: "relative" }}>
+                <div className="auth-input-wrapper">
                   <input
                     id="reset-new-password"
                     type={showPassword ? "text" : "password"}
@@ -252,28 +200,13 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password"
                     required
-                    style={{
-                      width: "100%",
-                      padding: "10px 40px 10px 14px",
-                      borderRadius: "8px",
-                      border: "1px solid #CBD5E1",
-                      fontSize: "0.92rem",
-                      boxSizing: "border-box",
-                    }}
+                    className="auth-input no-icon has-toggle"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      position: "absolute",
-                      right: "12px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "#64748B",
-                    }}
+                    className="auth-password-toggle"
+                    title={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? "👁️‍🗨️" : "👁️"}
                   </button>
@@ -281,10 +214,7 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
               </div>
 
               <div style={{ marginBottom: "18px" }}>
-                <label
-                  htmlFor="reset-confirm-password"
-                  style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "#334155", marginBottom: "6px" }}
-                >
+                <label htmlFor="reset-confirm-password" className="auth-label">
                   Confirm New Password
                 </label>
                 <input
@@ -294,50 +224,52 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter new password"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid #CBD5E1",
-                    fontSize: "0.92rem",
-                    boxSizing: "border-box",
-                  }}
+                  className="auth-input no-icon"
                 />
               </div>
 
               {/* Requirement Checklist */}
-              <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.82rem" }}>
-                <div style={{ color: hasMinLength ? "#0D9488" : "#94A3B8" }}>
-                  {hasMinLength ? "✓" : "○"} At least 8 characters
+              <div
+                style={{
+                  marginBottom: "22px",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "6px",
+                  fontSize: "0.82rem",
+                  padding: "10px 12px",
+                  backgroundColor: "#F8FAFC",
+                  borderRadius: "8px",
+                  border: "1px solid #E2E8F0",
+                }}
+              >
+                <div style={{ color: hasMinLength ? "#1D4ED8" : "#64748B", fontWeight: hasMinLength ? 600 : 400 }}>
+                  {hasMinLength ? "✓" : "○"} 8+ characters
                 </div>
-                <div style={{ color: hasLetter ? "#0D9488" : "#94A3B8" }}>
-                  {hasLetter ? "✓" : "○"} At least one letter
+                <div style={{ color: hasLetter ? "#1D4ED8" : "#64748B", fontWeight: hasLetter ? 600 : 400 }}>
+                  {hasLetter ? "✓" : "○"} At least 1 letter
                 </div>
-                <div style={{ color: hasNumber ? "#0D9488" : "#94A3B8" }}>
-                  {hasNumber ? "✓" : "○"} At least one number
+                <div style={{ color: hasNumber ? "#1D4ED8" : "#64748B", fontWeight: hasNumber ? 600 : 400 }}>
+                  {hasNumber ? "✓" : "○"} At least 1 number
                 </div>
-                <div style={{ color: passwordsMatch ? "#0D9488" : "#94A3B8" }}>
+                <div style={{ color: passwordsMatch ? "#1D4ED8" : "#64748B", fontWeight: passwordsMatch ? 600 : 400 }}>
                   {passwordsMatch ? "✓" : "○"} Passwords match
                 </div>
               </div>
 
               <button
+                id="reset-submit-btn"
                 type="submit"
                 disabled={loading || !isValid}
-                style={{
-                  width: "100%",
-                  backgroundColor: isValid ? "#0F2B48" : "#94A3B8",
-                  color: "#FFFFFF",
-                  border: "none",
-                  padding: "13px 20px",
-                  borderRadius: "8px",
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                  cursor: isValid ? "pointer" : "not-allowed",
-                  boxShadow: isValid ? "0 4px 12px rgba(15, 43, 72, 0.25)" : "none",
-                }}
+                className="auth-btn-primary"
               >
-                {loading ? "Resetting..." : "Reset Password"}
+                {loading ? (
+                  <>
+                    <span style={{ animation: "spin 1s linear infinite" }}>🔄</span>
+                    <span>Resetting...</span>
+                  </>
+                ) : (
+                  "Reset Password"
+                )}
               </button>
             </form>
           )}

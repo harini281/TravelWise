@@ -65,30 +65,19 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#F8FAFC",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        fontFamily: "'Inter', sans-serif",
-      }}
-    >
+    <div className="auth-page-container">
       {/* Top bar with back to home */}
       <header style={{ padding: "20px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button
           type="button"
           onClick={onBackToLanding}
+          className="auth-link-btn"
           style={{
-            background: "none",
-            border: "none",
             color: "#64748B",
             display: "inline-flex",
             alignItems: "center",
             gap: "6px",
             fontSize: "0.92rem",
-            cursor: "pointer",
             fontWeight: 500,
           }}
         >
@@ -101,15 +90,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
 
       {/* Center Auth Card */}
       <main style={{ width: "100%", maxWidth: "440px", margin: "20px auto", padding: "0 20px" }}>
-        <div
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderRadius: "16px",
-            boxShadow: "0 10px 30px rgba(15, 43, 72, 0.08)",
-            border: "1px solid #E2E8F0",
-            padding: "40px 36px",
-          }}
-        >
+        <div className="auth-card">
           {/* Logo Brand Header */}
           <div style={{ textAlign: "center", marginBottom: "28px" }}>
             <TravelWiseLogo size={32} showTagline={false} />
@@ -151,51 +132,14 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
             </div>
           )}
 
-          {/* Forgot Notice */}
-          {forgotNotice && (
-            <div
-              style={{
-                backgroundColor: "#F0FDFA",
-                border: "1px solid #99F6E4",
-                color: "#0F766E",
-                borderRadius: "8px",
-                padding: "12px 14px",
-                fontSize: "0.85rem",
-                marginBottom: "20px",
-              }}
-            >
-              ℹ️ <strong>Password Reset Notice:</strong> Email password recovery tokens will be configured in Stage 2. For now, you can sign in directly using the demo accounts below.
-            </div>
-          )}
-
           {/* Sign In Form */}
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: "18px" }}>
-              <label
-                htmlFor="signin-identifier"
-                style={{
-                  display: "block",
-                  fontSize: "0.88rem",
-                  fontWeight: 600,
-                  color: "#334155",
-                  marginBottom: "6px",
-                }}
-              >
+              <label htmlFor="signin-identifier" className="auth-label">
                 Email or Username
               </label>
-              <div style={{ position: "relative" }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    left: "14px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#94A3B8",
-                    fontSize: "1rem",
-                  }}
-                >
-                  👤
-                </span>
+              <div className="auth-input-wrapper">
+                <span className="auth-input-icon">👤</span>
                 <input
                   id="signin-identifier"
                   type="text"
@@ -203,54 +147,17 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="you@example.com or traveller"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "11px 14px 11px 40px",
-                    borderRadius: "8px",
-                    border: "1px solid #CBD5E1",
-                    fontSize: "0.95rem",
-                    outline: "none",
-                    boxSizing: "border-box",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#0D9488";
-                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(13, 148, 136, 0.15)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "#CBD5E1";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="auth-input"
                 />
               </div>
             </div>
 
             <div style={{ marginBottom: "20px" }}>
-              <label
-                htmlFor="signin-password"
-                style={{
-                  display: "block",
-                  fontSize: "0.88rem",
-                  fontWeight: 600,
-                  color: "#334155",
-                  marginBottom: "6px",
-                }}
-              >
+              <label htmlFor="signin-password" className="auth-label">
                 Password
               </label>
-              <div style={{ position: "relative" }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    left: "14px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#94A3B8",
-                    fontSize: "1rem",
-                  }}
-                >
-                  🔒
-                </span>
+              <div className="auth-input-wrapper">
+                <span className="auth-input-icon">🔒</span>
                 <input
                   id="signin-password"
                   type={showPassword ? "text" : "password"}
@@ -258,40 +165,12 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "11px 42px 11px 40px",
-                    borderRadius: "8px",
-                    border: "1px solid #CBD5E1",
-                    fontSize: "0.95rem",
-                    outline: "none",
-                    boxSizing: "border-box",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#0D9488";
-                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(13, 148, 136, 0.15)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "#CBD5E1";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="auth-input has-toggle"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute",
-                    right: "12px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "#64748B",
-                    fontSize: "0.95rem",
-                    padding: "4px",
-                  }}
+                  className="auth-password-toggle"
                   title={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? "👁️‍🗨️" : "👁️"}
@@ -314,22 +193,16 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ accentColor: "#0F2B48", width: "16px", height: "16px" }}
+                  style={{ accentColor: "#2563eb", width: "16px", height: "16px", cursor: "pointer" }}
                 />
-                <span>Remember me</span>
+                <span style={{ fontWeight: 500 }}>Remember me</span>
               </label>
 
               <button
                 type="button"
                 onClick={onNavigateForgotPassword}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#0D9488",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  padding: 0,
-                }}
+                className="auth-link-btn"
+                style={{ fontSize: "0.88rem" }}
               >
                 Forgot password?
               </button>
@@ -337,27 +210,10 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
 
             {/* Sign In Button */}
             <button
+              id="signin-submit-btn"
               type="submit"
               disabled={loading}
-              style={{
-                width: "100%",
-                backgroundColor: "#0F2B48",
-                color: "#FFFFFF",
-                border: "none",
-                padding: "13px 20px",
-                borderRadius: "8px",
-                fontSize: "1rem",
-                fontWeight: 700,
-                cursor: loading ? "wait" : "pointer",
-                boxShadow: "0 4px 12px rgba(15, 43, 72, 0.25)",
-                transition: "background-color 0.15s, transform 0.15s",
-              }}
-              onMouseOver={(e) => {
-                if (!loading) e.currentTarget.style.backgroundColor = "#1E3A8A";
-              }}
-              onMouseOut={(e) => {
-                if (!loading) e.currentTarget.style.backgroundColor = "#0F2B48";
-              }}
+              className="auth-btn-primary"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
@@ -398,55 +254,28 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                 <button
                   type="button"
                   onClick={() => handleQuickFill("traveller", "Traveller123!")}
-                  style={{
-                    backgroundColor: "#F1F5F9",
-                    border: "1px solid #CBD5E1",
-                    borderRadius: "6px",
-                    padding: "8px 4px",
-                    fontSize: "0.78rem",
-                    cursor: "pointer",
-                    textAlign: "center",
-                    fontWeight: 600,
-                    color: "#0F2B48",
-                  }}
+                  className="auth-demo-card"
+                  style={{ color: "#1E40AF" }}
                 >
-                  Traveller
+                  <div style={{ fontWeight: 700, fontSize: "0.82rem" }}>Traveller</div>
                   <div style={{ fontSize: "0.68rem", color: "#64748B", fontWeight: 400 }}>Standard</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickFill("reviewer", "Reviewer123!")}
-                  style={{
-                    backgroundColor: "#F0FDFA",
-                    border: "1px solid #99F6E4",
-                    borderRadius: "6px",
-                    padding: "8px 4px",
-                    fontSize: "0.78rem",
-                    cursor: "pointer",
-                    textAlign: "center",
-                    fontWeight: 600,
-                    color: "#0D9488",
-                  }}
+                  className="auth-demo-card"
+                  style={{ color: "#0F766E" }}
                 >
-                  Reviewer
+                  <div style={{ fontWeight: 700, fontSize: "0.82rem" }}>Reviewer</div>
                   <div style={{ fontSize: "0.68rem", color: "#0F766E", fontWeight: 400 }}>Approval</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickFill("admin", "Admin123!")}
-                  style={{
-                    backgroundColor: "#FEF2F2",
-                    border: "1px solid #FECACA",
-                    borderRadius: "6px",
-                    padding: "8px 4px",
-                    fontSize: "0.78rem",
-                    cursor: "pointer",
-                    textAlign: "center",
-                    fontWeight: 600,
-                    color: "#DC2626",
-                  }}
+                  className="auth-demo-card"
+                  style={{ color: "#DC2626" }}
                 >
-                  Admin
+                  <div style={{ fontWeight: 700, fontSize: "0.82rem" }}>Admin</div>
                   <div style={{ fontSize: "0.68rem", color: "#991B1B", fontWeight: 400 }}>Full Access</div>
                 </button>
               </div>
@@ -454,20 +283,14 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
           </div>
 
           {/* Create Account Link */}
-          <div style={{ textAlign: "center", marginTop: "24px", fontSize: "0.9rem", color: "#64748B" }}>
+          <div style={{ textAlign: "center", marginTop: "24px", fontSize: "0.92rem", color: "#64748B" }}>
             Don't have an account?{" "}
             <button
               id="navigate-signup-btn"
               type="button"
               onClick={onNavigateSignUp}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#0D9488",
-                fontWeight: 700,
-                cursor: "pointer",
-                padding: 0,
-              }}
+              className="auth-link-btn"
+              style={{ fontSize: "0.92rem" }}
             >
               Create account
             </button>

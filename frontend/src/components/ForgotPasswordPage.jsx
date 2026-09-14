@@ -38,25 +38,14 @@ export default function ForgotPasswordPage({ onNavigateLogin }) {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#F8FAFC",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        fontFamily: "'Inter', sans-serif",
-      }}
-    >
+    <div className="auth-page-container">
       <header style={{ padding: "24px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button
           type="button"
           onClick={onNavigateLogin}
+          className="auth-link-btn"
           style={{
-            background: "none",
-            border: "none",
             color: "#64748B",
-            cursor: "pointer",
             fontSize: "0.92rem",
             fontWeight: 500,
           }}
@@ -69,16 +58,7 @@ export default function ForgotPasswordPage({ onNavigateLogin }) {
       </header>
 
       <main style={{ maxWidth: "440px", width: "100%", margin: "20px auto", padding: "0 20px" }}>
-        <div
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderRadius: "16px",
-            boxShadow: "0 10px 30px rgba(15, 43, 72, 0.08)",
-            border: "1px solid #E2E8F0",
-            padding: "40px 36px",
-            textAlign: "center",
-          }}
-        >
+        <div className="auth-card" style={{ textAlign: "center" }}>
           <div style={{ marginBottom: "24px" }}>
             <TravelWiseLogo size={32} showTagline={false} />
             <h1
@@ -142,17 +122,7 @@ export default function ForgotPasswordPage({ onNavigateLogin }) {
               <button
                 type="button"
                 onClick={onNavigateLogin}
-                style={{
-                  width: "100%",
-                  backgroundColor: "#0F2B48",
-                  color: "#FFFFFF",
-                  border: "none",
-                  padding: "12px 20px",
-                  borderRadius: "8px",
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="auth-btn-primary"
               >
                 Back to Sign In
               </button>
@@ -160,30 +130,11 @@ export default function ForgotPasswordPage({ onNavigateLogin }) {
           ) : (
             <form onSubmit={handleSubmit} style={{ textAlign: "left" }}>
               <div style={{ marginBottom: "24px" }}>
-                <label
-                  htmlFor="forgot-email"
-                  style={{
-                    display: "block",
-                    fontSize: "0.88rem",
-                    fontWeight: 600,
-                    color: "#334155",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label htmlFor="forgot-email" className="auth-label">
                   Email Address
                 </label>
-                <div style={{ position: "relative" }}>
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: "14px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "#94A3B8",
-                    }}
-                  >
-                    ✉️
-                  </span>
+                <div className="auth-input-wrapper">
+                  <span className="auth-input-icon">✉️</span>
                   <input
                     id="forgot-email"
                     type="email"
@@ -191,51 +142,34 @@ export default function ForgotPasswordPage({ onNavigateLogin }) {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
-                    style={{
-                      width: "100%",
-                      padding: "11px 14px 11px 40px",
-                      borderRadius: "8px",
-                      border: "1px solid #CBD5E1",
-                      fontSize: "0.95rem",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
+                    className="auth-input"
                   />
                 </div>
               </div>
 
               <button
+                id="forgot-submit-btn"
                 type="submit"
                 disabled={loading}
-                style={{
-                  width: "100%",
-                  backgroundColor: "#0F2B48",
-                  color: "#FFFFFF",
-                  border: "none",
-                  padding: "13px 20px",
-                  borderRadius: "8px",
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                  cursor: loading ? "wait" : "pointer",
-                  boxShadow: "0 4px 12px rgba(15, 43, 72, 0.25)",
-                }}
+                className="auth-btn-primary"
               >
-                {loading ? "Sending link..." : "Send Reset Link"}
+                {loading ? (
+                  <>
+                    <span style={{ animation: "spin 1s linear infinite" }}>🔄</span>
+                    <span>Sending link...</span>
+                  </>
+                ) : (
+                  "Send Reset Link"
+                )}
               </button>
 
-              <div style={{ textAlign: "center", marginTop: "24px", fontSize: "0.9rem", color: "#64748B" }}>
+              <div style={{ textAlign: "center", marginTop: "24px", fontSize: "0.92rem", color: "#64748B" }}>
                 Remember your password?{" "}
                 <button
                   type="button"
                   onClick={onNavigateLogin}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#0D9488",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
+                  className="auth-link-btn"
+                  style={{ fontSize: "0.92rem" }}
                 >
                   Sign in
                 </button>

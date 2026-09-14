@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   /* TravelWise Palette */
   --primary: #0f2b48;
   --primary-hover: #1e3a8a;
@@ -558,4 +558,252 @@ p, .body-text {
   .content-container {
     padding: 16px;
   }
+}
+
+/* =========================================================
+   Authentication 3D Design System (TravelWise Blue Theme)
+   ========================================================= */
+
+.auth-page-container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.05) 0%, transparent 65%),
+    linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+  display: flex;
+  flex-direction: column;
+  justifyContent: space-between;
+  font-family: var(--font-family);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Modern Blue 3D Travel App Card */
+.auth-card {
+  background-color: #ffffff;
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 
+    0 1px 3px rgba(15, 23, 42, 0.03),
+    0 10px 25px -5px rgba(15, 43, 72, 0.08),
+    0 24px 48px -12px rgba(30, 64, 175, 0.14);
+  padding: 40px 36px;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 28px;
+  right: 28px;
+  height: 3px;
+  background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 50%, #1d4ed8 100%);
+  border-radius: 3px 3px 0 0;
+}
+
+@media (max-width: 520px) {
+  .auth-card {
+    padding: 30px 22px;
+    border-radius: 14px;
+  }
+}
+
+/* Form Labels */
+.auth-label {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+/* Recessed Inset Form Input Fields */
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 1rem;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  z-index: 2;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  font-size: 0.94rem;
+  font-family: inherit;
+  color: #0f172a;
+  background-color: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.04);
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-input::placeholder {
+  color: #94a3b8;
+}
+
+.auth-input:hover:not(:disabled):not(:focus) {
+  border-color: #94a3b8;
+  background-color: #ffffff;
+}
+
+.auth-input:focus {
+  background-color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 
+    inset 0 1px 2px rgba(15, 23, 42, 0.02),
+    0 0 0 4px rgba(37, 99, 235, 0.16);
+}
+
+.auth-input-wrapper:focus-within .auth-input-icon {
+  color: #2563eb;
+}
+
+.auth-input.no-icon {
+  padding-left: 14px;
+}
+
+.auth-input.has-toggle {
+  padding-right: 44px;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.15s ease;
+  z-index: 2;
+}
+
+.auth-password-toggle:hover {
+  color: #1d4ed8;
+  background-color: #eff6ff;
+}
+
+/* 3D Raised Blue Primary Button System */
+.auth-btn-primary {
+  width: 100%;
+  padding: 13px 22px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #ffffff !important;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1px solid #1e40af;
+  border-bottom: 2.5px solid #172554;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.01em;
+  box-shadow: 
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 4px 12px rgba(37, 99, 235, 0.35),
+    0 2px 4px rgba(15, 23, 42, 0.15);
+  transform: translateY(0);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 6px 18px rgba(37, 99, 235, 0.45),
+    0 3px 6px rgba(15, 23, 42, 0.2);
+}
+
+.auth-btn-primary:active:not(:disabled) {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(1px);
+  border-bottom-width: 1px;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.25),
+    0 1px 4px rgba(37, 99, 235, 0.25);
+}
+
+.auth-btn-primary:disabled {
+  background: #94a3b8 !important;
+  border: 1px solid #94a3b8 !important;
+  color: #f8fafc !important;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 0.7;
+}
+
+/* Secondary / 3D Raised Demo Account Badges */
+.auth-demo-card {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05);
+}
+
+.auth-demo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(15, 43, 72, 0.12);
+  border-color: #3b82f6;
+}
+
+.auth-demo-card:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* Links */
+.auth-link-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: inherit;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.auth-link-btn:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+  background-color: #eff6ff;
 }

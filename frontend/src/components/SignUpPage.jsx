@@ -73,7 +73,8 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#F8FAFC",
+        backgroundImage: "radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.04) 0%, transparent 60%)",
         display: "flex",
         fontFamily: "'Inter', sans-serif",
       }}
@@ -81,12 +82,12 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
       {/* Left Column: Form */}
       <div
         style={{
-          flex: "1 1 500px",
+          flex: "1 1 540px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "32px 40px",
-          maxWidth: "600px",
+          padding: "32px 36px",
+          maxWidth: "620px",
           boxSizing: "border-box",
         }}
       >
@@ -94,15 +95,14 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
           <button
             type="button"
             onClick={onBackToLanding}
+            className="auth-link-btn"
             style={{
-              background: "none",
-              border: "none",
               color: "#64748B",
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
               fontSize: "0.9rem",
-              cursor: "pointer",
+              fontWeight: 500,
             }}
           >
             ← Back to home
@@ -112,10 +112,10 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
           </div>
         </header>
 
-        <div style={{ maxWidth: "420px", width: "100%", margin: "24px auto" }}>
+        <div style={{ maxWidth: "460px", width: "100%", margin: "20px auto" }} className="auth-card">
           <h1
             style={{
-              fontSize: "1.85rem",
+              fontSize: "1.75rem",
               fontWeight: 800,
               color: "#0F2B48",
               marginBottom: "8px",
@@ -124,8 +124,8 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
           >
             Create your account
           </h1>
-          <p style={{ color: "#64748B", fontSize: "0.95rem", marginBottom: "24px" }}>
-            Join TravelWise and start planning smarter.
+          <p style={{ color: "#64748B", fontSize: "0.92rem", marginBottom: "20px" }}>
+            Join TravelWise and start planning smarter journeys.
           </p>
 
           {error && (
@@ -146,10 +146,7 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: "14px" }}>
-              <label
-                htmlFor="signup-fullname"
-                style={{ display: "block", fontSize: "0.86rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}
-              >
+              <label htmlFor="signup-fullname" className="auth-label">
                 Full Name
               </label>
               <input
@@ -159,22 +156,12 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Kasun Perera"
                 required
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                  border: "1px solid #CBD5E1",
-                  fontSize: "0.92rem",
-                  boxSizing: "border-box",
-                }}
+                className="auth-input no-icon"
               />
             </div>
 
             <div style={{ marginBottom: "14px" }}>
-              <label
-                htmlFor="signup-username"
-                style={{ display: "block", fontSize: "0.86rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}
-              >
+              <label htmlFor="signup-username" className="auth-label">
                 Username
               </label>
               <input
@@ -184,22 +171,12 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Choose a unique username"
                 required
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                  border: "1px solid #CBD5E1",
-                  fontSize: "0.92rem",
-                  boxSizing: "border-box",
-                }}
+                className="auth-input no-icon"
               />
             </div>
 
             <div style={{ marginBottom: "14px" }}>
-              <label
-                htmlFor="signup-email"
-                style={{ display: "block", fontSize: "0.86rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}
-              >
+              <label htmlFor="signup-email" className="auth-label">
                 Email Address
               </label>
               <input
@@ -209,25 +186,15 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                  border: "1px solid #CBD5E1",
-                  fontSize: "0.92rem",
-                  boxSizing: "border-box",
-                }}
+                className="auth-input no-icon"
               />
             </div>
 
             <div style={{ marginBottom: "14px" }}>
-              <label
-                htmlFor="signup-password"
-                style={{ display: "block", fontSize: "0.86rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}
-              >
+              <label htmlFor="signup-password" className="auth-label">
                 Password
               </label>
-              <div style={{ position: "relative" }}>
+              <div className="auth-input-wrapper">
                 <input
                   id="signup-password"
                   type={showPassword ? "text" : "password"}
@@ -235,28 +202,13 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Create a password"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px 40px 10px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid #CBD5E1",
-                    fontSize: "0.92rem",
-                    boxSizing: "border-box",
-                  }}
+                  className="auth-input no-icon has-toggle"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute",
-                    right: "12px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "#64748B",
-                  }}
+                  className="auth-password-toggle"
+                  title={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? "👁️‍🗨️" : "👁️"}
                 </button>
@@ -264,10 +216,7 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
             </div>
 
             <div style={{ marginBottom: "16px" }}>
-              <label
-                htmlFor="signup-confirm-password"
-                style={{ display: "block", fontSize: "0.86rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}
-              >
+              <label htmlFor="signup-confirm-password" className="auth-label">
                 Confirm Password
               </label>
               <input
@@ -277,67 +226,64 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter password"
                 required
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                  border: "1px solid #CBD5E1",
-                  fontSize: "0.92rem",
-                  boxSizing: "border-box",
-                }}
+                className="auth-input no-icon"
               />
             </div>
 
             {/* Checklist Requirements */}
-            <div style={{ marginBottom: "20px", display: "flex", flexDirection: "column", gap: "5px", fontSize: "0.82rem" }}>
-              <div style={{ color: hasMinLength ? "#0D9488" : "#94A3B8" }}>
-                {hasMinLength ? "✓" : "○"} At least 8 characters
+            <div
+              style={{
+                marginBottom: "20px",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "6px",
+                fontSize: "0.82rem",
+                padding: "10px 12px",
+                backgroundColor: "#F8FAFC",
+                borderRadius: "8px",
+                border: "1px solid #E2E8F0",
+              }}
+            >
+              <div style={{ color: hasMinLength ? "#1D4ED8" : "#64748B", fontWeight: hasMinLength ? 600 : 400 }}>
+                {hasMinLength ? "✓" : "○"} 8+ characters
               </div>
-              <div style={{ color: hasLetter ? "#0D9488" : "#94A3B8" }}>
-                {hasLetter ? "✓" : "○"} At least one letter
+              <div style={{ color: hasLetter ? "#1D4ED8" : "#64748B", fontWeight: hasLetter ? 600 : 400 }}>
+                {hasLetter ? "✓" : "○"} At least 1 letter
               </div>
-              <div style={{ color: hasNumber ? "#0D9488" : "#94A3B8" }}>
-                {hasNumber ? "✓" : "○"} At least one number
+              <div style={{ color: hasNumber ? "#1D4ED8" : "#64748B", fontWeight: hasNumber ? 600 : 400 }}>
+                {hasNumber ? "✓" : "○"} At least 1 number
               </div>
-              <div style={{ color: passwordsMatch ? "#0D9488" : "#94A3B8" }}>
+              <div style={{ color: passwordsMatch ? "#1D4ED8" : "#64748B", fontWeight: passwordsMatch ? 600 : 400 }}>
                 {passwordsMatch ? "✓" : "○"} Passwords match
               </div>
             </div>
 
+            {/* Sign Up Primary 3D Button */}
             <button
+              id="signup-submit-btn"
               type="submit"
               disabled={loading || !isFormValid}
-              style={{
-                width: "100%",
-                backgroundColor: isFormValid ? "#0F2B48" : "#94A3B8",
-                color: "#FFFFFF",
-                border: "none",
-                padding: "12px 20px",
-                borderRadius: "8px",
-                fontSize: "1rem",
-                fontWeight: 700,
-                cursor: isFormValid ? "pointer" : "not-allowed",
-                boxShadow: isFormValid ? "0 4px 12px rgba(15, 43, 72, 0.25)" : "none",
-              }}
+              className="auth-btn-primary"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? (
+                <>
+                  <span style={{ animation: "spin 1s linear infinite" }}>🔄</span>
+                  <span>Creating Account...</span>
+                </>
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
 
-          <div style={{ textAlign: "center", marginTop: "20px", fontSize: "0.88rem", color: "#64748B" }}>
+          <div style={{ textAlign: "center", marginTop: "20px", fontSize: "0.9rem", color: "#64748B" }}>
             Already have an account?{" "}
             <button
               id="navigate-signin-btn"
               type="button"
               onClick={onNavigateSignIn}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#0D9488",
-                fontWeight: 700,
-                cursor: "pointer",
-                padding: 0,
-              }}
+              className="auth-link-btn"
+              style={{ fontSize: "0.92rem" }}
             >
               Sign in
             </button>
