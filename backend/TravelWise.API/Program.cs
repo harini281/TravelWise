@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // ---------------------------------------------------------
 // JWT Authentication
@@ -106,6 +107,8 @@ var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").
     {
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:4173",
         "http://localhost:3000"
     };
 
@@ -114,7 +117,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("ReactFrontend", policy =>
     {
         policy
-            .WithOrigins(configuredOrigins)
+            .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost" || new Uri(origin).Host == "127.0.0.1")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -165,6 +168,34 @@ builder.Services
 
 var app = builder.Build();
 
+// Ensure User table schema has onboarding and preference columns
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TravelWiseDbContext>();
+    try
+    {
+        if (db.Database.IsRelational())
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""FullName"" text;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""PasswordResetToken"" text;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""PasswordResetExpiry"" timestamp with time zone;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""HasCompletedOnboarding"" boolean DEFAULT false NOT NULL;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""TravelStyle"" text;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""Interests"" text;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""BudgetStyle"" text;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""ActivityPace"" text;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""TransportPreference"" text;
+            ");
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Schema initialization check completed.");
+    }
+}
+
 
 // ---------------------------------------------------------
 // Swagger
@@ -181,7 +212,10 @@ if (app.Environment.IsDevelopment())
 // Middleware
 // ---------------------------------------------------------
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 
 // Allow React frontend to call ASP.NET API

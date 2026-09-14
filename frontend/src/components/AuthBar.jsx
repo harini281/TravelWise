@@ -1,7 +1,7 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
-function AuthBar({ user, onLogin, onLogout }) {
+function AuthBar({ user, onLogin, onLogout, onOpenSignIn }) {
   const [showModal, setShowModal] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -101,7 +101,13 @@ function AuthBar({ user, onLogin, onLogout }) {
         <button
           type="button"
           className="btn btn-primary btn-sm"
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            if (onOpenSignIn) {
+              onOpenSignIn();
+            } else {
+              setShowModal(true);
+            }
+          }}
         >
           🔐 Sign In
         </button>

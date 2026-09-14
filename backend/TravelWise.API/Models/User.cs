@@ -1,4 +1,4 @@
-﻿namespace TravelWise.API.Models;
+namespace TravelWise.API.Models;
 
 public class User
 {
@@ -13,4 +13,26 @@ public class User
     public string Role { get; set; } = "Traveller"; // "Traveller", "Reviewer", "Admin"
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Profile details
+    public string? FullName { get; set; }
+
+    // Password reset fields
+    public string? PasswordResetToken { get; set; }
+
+    public DateTime? PasswordResetExpiry { get; set; }
+
+    // Onboarding status and preferences
+    public bool HasCompletedOnboarding { get; set; } = false;
+
+    public string? TravelStyle { get; set; }
+
+    public string? Interests { get; set; }
+
+    public string? BudgetStyle { get; set; }
+
+    public string? ActivityPace { get; set; }
+
+    public string? TransportPreference { get; set; }
 }
+

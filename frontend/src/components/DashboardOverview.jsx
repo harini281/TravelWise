@@ -1,7 +1,7 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
-function DashboardOverview({ trip, onNavigate }) {
+function DashboardOverview({ trip, user, onNavigate }) {
   const [budgetHealth, setBudgetHealth] = useState(null);
   const [activities, setActivities] = useState([]);
   const [weather, setWeather] = useState(null);
@@ -73,6 +73,74 @@ function DashboardOverview({ trip, onNavigate }) {
 
   return (
     <div>
+      {/* Personalized Welcome & Preferences Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+          marginBottom: "20px",
+          padding: "4px 0",
+        }}
+      >
+        <div>
+          <h2 style={{ fontSize: "1.65rem", fontWeight: 800, color: "var(--primary)", margin: "0 0 4px" }}>
+            Good morning, {user?.fullName || user?.username || "Traveller"}! 👋
+          </h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", margin: 0 }}>
+            Ready for your next adventure?
+          </p>
+        </div>
+
+        {/* Saved Preferences Summary Badge */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            backgroundColor: "var(--bg-surface)",
+            padding: "8px 16px",
+            borderRadius: "30px",
+            border: "1px solid var(--border-color)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <span style={{ fontSize: "1.1rem" }}>🧭</span>
+          <div style={{ fontSize: "0.82rem" }}>
+            <span style={{ color: "var(--primary)", fontWeight: 700 }}>
+              {user?.travelStyle || "Adventure"}
+            </span>
+            <span style={{ color: "var(--text-muted)", margin: "0 6px" }}>•</span>
+            <span style={{ color: "var(--text-secondary)" }}>
+              {Array.isArray(user?.interests)
+                ? user.interests.slice(0, 3).join(", ")
+                : (user?.interests || "Nature, Hiking")}
+            </span>
+            <span style={{ color: "var(--text-muted)", margin: "0 6px" }}>•</span>
+            <span style={{ color: "var(--secondary)", fontWeight: 600 }}>
+              {user?.budgetStyle || "Balanced"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate("profile")}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--secondary)",
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              marginLeft: "4px",
+            }}
+          >
+            Edit
+          </button>
+        </div>
+      </div>
+
       {/* Hero Trip Card */}
       <div
         className="tw-card"
@@ -263,6 +331,38 @@ function DashboardOverview({ trip, onNavigate }) {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Foundational "Recommended for you" Card based on saved interests */}
+          <div className="tw-card" style={{ marginTop: "20px" }}>
+            <div className="tw-card-header">
+              <h3 className="tw-card-title">
+                <span>✨</span> Recommended for You
+              </h3>
+              <span className="badge badge-ai" style={{ fontSize: "0.75rem" }}>
+                Tuned to {user?.travelStyle || "Adventure"}
+              </span>
+            </div>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: "14px" }}>
+              Curated experiences matching your interests in{" "}
+              <strong>
+                {Array.isArray(user?.interests)
+                  ? user.interests.slice(0, 3).join(", ")
+                  : (user?.interests || "Nature, Hiking, Photography")}
+              </strong>:
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+              <div style={{ padding: "12px", border: "1px solid var(--border-color)", borderRadius: "var(--radius-md)", backgroundColor: "var(--bg-surface-alt)" }}>
+                <div style={{ fontWeight: 700, color: "var(--primary)", fontSize: "0.95rem" }}>Nine Arches Bridge</div>
+                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "2px" }}>📍 Ella • Photography & Architecture</div>
+                <div style={{ fontSize: "0.75rem", color: "var(--secondary)", fontWeight: 600, marginTop: "4px" }}>✓ Fits {user?.budgetStyle || "Balanced"} Budget</div>
+              </div>
+              <div style={{ padding: "12px", border: "1px solid var(--border-color)", borderRadius: "var(--radius-md)", backgroundColor: "var(--bg-surface-alt)" }}>
+                <div style={{ fontWeight: 700, color: "var(--primary)", fontSize: "0.95rem" }}>Little Adam's Peak</div>
+                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "2px" }}>📍 Ella • Scenic Hiking & Sunrise</div>
+                <div style={{ fontSize: "0.75rem", color: "var(--secondary)", fontWeight: 600, marginTop: "4px" }}>✓ Fits {user?.activityPace || "Balanced"} Pace</div>
+              </div>
+            </div>
           </div>
         </div>
 
