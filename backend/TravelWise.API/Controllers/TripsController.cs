@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelWise.API.Data;
@@ -8,6 +9,7 @@ namespace TravelWise.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TripsController : ControllerBase
 {
     private readonly TravelWiseDbContext _context;
@@ -61,6 +63,17 @@ public class TripsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Trip>> CreateTrip([FromBody] Trip trip)
     {
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        if (!IsAdmin() && trip.UserId.HasValue && trip.UserId.Value != currentUserId.Value)
+        {
+            return Forbid();
+        }
+
         if (trip.ReturnDate < trip.StartDate)
         {
             return BadRequest("Return date must be on or after the start date.");
@@ -76,11 +89,16 @@ public class TripsController : ControllerBase
             return BadRequest("Traveller count must be at least 1.");
         }
 
-        var currentUserId = GetCurrentUserId();
-        if (currentUserId.HasValue && !trip.UserId.HasValue)
+        if (!IsAdmin() || !trip.UserId.HasValue)
         {
             trip.UserId = currentUserId.Value;
         }
+
+        trip.TravelScope = trip.TravelScope == "International" ? "International" : "Local";
+        trip.PassportRequired = trip.TravelScope == "International";
+        trip.OriginalReturnDate ??= trip.ReturnDate;
+        trip.ReturnBudgetReserve = Math.Max(0, trip.ReturnBudgetReserve);
+        trip.FoodBudget = Math.Max(0, trip.FoodBudget);
 
         trip.StartDate = DateTime.SpecifyKind(trip.StartDate, DateTimeKind.Utc);
         trip.ReturnDate = DateTime.SpecifyKind(trip.ReturnDate, DateTimeKind.Utc);
@@ -95,7 +113,19 @@ public class TripsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Trip>> GetTrip(int id)
     {
-        var trip = await _context.Trips.FindAsync(id);
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var query = _context.Trips.AsQueryable();
+        if (!IsAdmin())
+        {
+            query = query.Where(t => t.UserId == currentUserId.Value);
+        }
+
+        var trip = await query.FirstOrDefaultAsync(t => t.Id == id);
 
         if (trip == null)
         {
@@ -118,7 +148,12 @@ public class TripsController : ControllerBase
         var currentUserId = GetCurrentUserId();
         var isAdmin = IsAdmin();
 
-        if (currentUserId.HasValue && !isAdmin && trip.UserId.HasValue && trip.UserId != currentUserId.Value)
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        if (!isAdmin && trip.UserId != currentUserId.Value)
         {
             return Forbid();
         }
@@ -143,8 +178,18 @@ public class TripsController : ControllerBase
         trip.StartDate = DateTime.SpecifyKind(updated.StartDate, DateTimeKind.Utc);
         trip.ReturnDate = DateTime.SpecifyKind(updated.ReturnDate, DateTimeKind.Utc);
         trip.BudgetAmount = updated.BudgetAmount;
+        trip.SpentAmount = updated.SpentAmount;
+        trip.FoodBudget = updated.FoodBudget;
+        trip.ReturnBudgetReserve = updated.ReturnBudgetReserve;
         trip.TravellerCount = updated.TravellerCount;
         trip.TripType = updated.TripType;
+        trip.TravelScope = updated.TravelScope == "International" ? "International" : "Local";
+        trip.PassportRequired = trip.TravelScope == "International";
+        trip.TravelInsuranceRequired = updated.TravelInsuranceRequired;
+        trip.ReadinessChecksComplete = updated.ReadinessChecksComplete;
+        trip.BaggagePlan = updated.BaggagePlan;
+        trip.OriginalReturnDate = updated.OriginalReturnDate;
+        trip.ReturnTransport = updated.ReturnTransport;
         trip.Status = updated.Status;
 
         if (updated.SelectedTransport != null) trip.SelectedTransport = updated.SelectedTransport;
@@ -175,7 +220,12 @@ public class TripsController : ControllerBase
         var currentUserId = GetCurrentUserId();
         var isAdmin = IsAdmin();
 
-        if (currentUserId.HasValue && !isAdmin && trip.UserId.HasValue && trip.UserId != currentUserId.Value)
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        if (!isAdmin && trip.UserId != currentUserId.Value)
         {
             return Forbid();
         }
@@ -184,5 +234,121 @@ public class TripsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    public class CompleteTripDto
+    {
+        public string CompletionMethod { get; set; } = "MANUAL"; // "LOCATION" or "MANUAL"
+        public double? CurrentLatitude { get; set; }
+        public double? CurrentLongitude { get; set; }
+    }
+
+    [HttpPost("{id}/complete")]
+    public async Task<IActionResult> CompleteTrip(int id, [FromBody] CompleteTripDto dto)
+    {
+        var trip = await _context.Trips.FindAsync(id);
+        if (trip == null)
+        {
+            return NotFound($"Trip with ID {id} was not found.");
+        }
+
+        var currentUserId = GetCurrentUserId();
+        // Only the trip owner can perform this action.
+        if (currentUserId.HasValue && trip.UserId.HasValue && trip.UserId.Value != currentUserId.Value)
+        {
+            return Forbid();
+        }
+
+        // Prevent duplicate completion
+        if (trip.Status == "COMPLETED")
+        {
+            return Ok(new
+            {
+                message = $"Trip to {trip.Destination} was already completed.",
+                destination = trip.Destination,
+                completedAt = trip.CompletedAt,
+                completionMethod = trip.CompletionMethod,
+                trip,
+                isAlreadyCompleted = true
+            });
+        }
+
+        var method = (dto.CompletionMethod ?? "MANUAL").Trim().ToUpperInvariant();
+
+        if (method == "LOCATION")
+        {
+            if (!dto.CurrentLatitude.HasValue || !dto.CurrentLongitude.HasValue)
+            {
+                return BadRequest(new { message = "Device latitude and longitude are required for live location arrival detection." });
+            }
+
+            double destLat = trip.DestinationLatitude ?? 0;
+            double destLon = trip.DestinationLongitude ?? 0;
+
+            if (destLat == 0 && destLon == 0)
+            {
+                (destLat, destLon) = GetKnownCoordinates(trip.Destination);
+            }
+
+            if (destLat == 0 && destLon == 0)
+            {
+                return BadRequest(new { message = $"Destination coordinates for '{trip.Destination}' could not be resolved. Please use manual completion." });
+            }
+
+            var distanceKm = CalculateHaversineDistanceKm(dto.CurrentLatitude.Value, dto.CurrentLongitude.Value, destLat, destLon);
+            var distanceMeters = Math.Round(distanceKm * 1000);
+
+            // Live arrival detection: within 500 metres (0.5 km)
+            if (distanceKm > 0.5)
+            {
+                return BadRequest(new
+                {
+                    message = $"You are {distanceMeters:N0} metres away from {trip.Destination}. Live arrival detection requires being within 500 metres.",
+                    distanceMeters,
+                    destination = trip.Destination
+                });
+            }
+        }
+
+        trip.Status = "COMPLETED";
+        trip.CompletedAt = DateTime.UtcNow;
+        trip.CompletionMethod = method;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = $"🎉 Congratulations! You've reached {trip.Destination}.",
+            destination = trip.Destination,
+            completedAt = trip.CompletedAt,
+            completionMethod = trip.CompletionMethod,
+            trip
+        });
+    }
+
+    private static (double Lat, double Lon) GetKnownCoordinates(string destination)
+    {
+        var d = destination.Trim().ToLowerInvariant();
+        if (d.Contains("ella")) return (6.8667, 81.0466);
+        if (d.Contains("colombo")) return (6.9271, 79.8612);
+        if (d.Contains("kandy")) return (7.2906, 80.6337);
+        if (d.Contains("galle")) return (6.0535, 80.2210);
+        if (d.Contains("nuwara")) return (6.9497, 80.7891);
+        if (d.Contains("sigiriya")) return (7.9570, 80.7603);
+        if (d.Contains("jaffna")) return (9.6615, 80.0255);
+        if (d.Contains("mirissa")) return (5.9482, 80.4578);
+        return (0, 0);
+    }
+
+    private static double CalculateHaversineDistanceKm(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371.0;
+        var dLat = (lat2 - lat1) * Math.PI / 180.0;
+        var dLon = (lon2 - lon1) * Math.PI / 180.0;
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                Math.Cos(lat1 * Math.PI / 180.0) * Math.Cos(lat2 * Math.PI / 180.0) *
+                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return R * c;
     }
 }

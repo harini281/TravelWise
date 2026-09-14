@@ -13,9 +13,29 @@ public class Trip
 
     public decimal BudgetAmount { get; set; }
 
+    public decimal SpentAmount { get; set; }
+
+    public decimal FoodBudget { get; set; }
+
+    public decimal ReturnBudgetReserve { get; set; }
+
+    public DateTime? OriginalReturnDate { get; set; }
+
+    public string? ReturnTransport { get; set; }
+
     public int TravellerCount { get; set; }
 
     public string TripType { get; set; } = string.Empty;
+
+    public string TravelScope { get; set; } = "Local";
+
+    public bool PassportRequired { get; set; }
+
+    public bool TravelInsuranceRequired { get; set; }
+
+    public bool ReadinessChecksComplete { get; set; }
+
+    public string? BaggagePlan { get; set; }
 
     public string Status { get; set; } = "PLANNING";
 
@@ -42,4 +62,9 @@ public class Trip
     public double? DestinationLongitude { get; set; }
 
     public string? RouteGeometryJson { get; set; }
+
+    // Trip Completion Telemetry
+    public DateTime? CompletedAt { get; set; }
+
+    public string? CompletionMethod { get; set; } // "LOCATION" or "MANUAL"
 }

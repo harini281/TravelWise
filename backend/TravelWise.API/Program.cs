@@ -198,6 +198,18 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""DestinationLatitude"" double precision;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""DestinationLongitude"" double precision;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""RouteGeometryJson"" text;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""CompletedAt"" timestamp with time zone;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""CompletionMethod"" text;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""TravelScope"" text DEFAULT 'Local' NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""PassportRequired"" boolean DEFAULT false NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""TravelInsuranceRequired"" boolean DEFAULT false NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""ReadinessChecksComplete"" boolean DEFAULT false NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""BaggagePlan"" text;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""SpentAmount"" numeric DEFAULT 0 NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""FoodBudget"" numeric DEFAULT 0 NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""ReturnBudgetReserve"" numeric DEFAULT 0 NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""OriginalReturnDate"" timestamp with time zone;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""ReturnTransport"" text;
             ");
         }
     }
