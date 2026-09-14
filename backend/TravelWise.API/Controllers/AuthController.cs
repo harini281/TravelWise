@@ -92,6 +92,11 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid username or password." });
         }
 
+        if (!user.IsActive)
+        {
+            return StatusCode(403, new { message = "Your account has been deactivated. Please contact an administrator." });
+        }
+
         var token = _authService.GenerateJwtToken(user, out var expiresAt);
 
         var interestsList = !string.IsNullOrWhiteSpace(user.Interests)
@@ -285,6 +290,7 @@ public class AuthController : ControllerBase
                     BudgetStyle = budget,
                     ActivityPace = pace,
                     TransportPreference = transport,
+                    IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
                 _context.Users.Add(user);
@@ -300,6 +306,7 @@ public class AuthController : ControllerBase
                 user.BudgetStyle ??= budget;
                 user.ActivityPace ??= pace;
                 user.TransportPreference ??= transport;
+                user.IsActive = true;
             }
         }
 

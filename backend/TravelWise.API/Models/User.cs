@@ -34,5 +34,8 @@ public class User
     public string? ActivityPace { get; set; }
 
     public string? TransportPreference { get; set; }
+
+    // Account status
+    public bool IsActive { get; set; } = true;
 }
 

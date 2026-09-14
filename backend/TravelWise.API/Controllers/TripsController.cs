@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelWise.API.Data;
@@ -16,10 +17,33 @@ public class TripsController : ControllerBase
         _context = context;
     }
 
+    private int? GetCurrentUserId()
+    {
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(claim, out var id) ? id : null;
+    }
+
+    private bool IsAdmin()
+    {
+        return User.IsInRole("Admin") || User.FindFirst(ClaimTypes.Role)?.Value == "Admin";
+    }
+
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Trip>>> GetTrips([FromQuery] string? search = null)
+    public async Task<ActionResult<IEnumerable<Trip>>> GetTrips([FromQuery] string? search = null, [FromQuery] int? userId = null)
     {
         var query = _context.Trips.AsQueryable();
+
+        var currentUserId = GetCurrentUserId();
+        var isAdmin = IsAdmin();
+
+        if (isAdmin && userId.HasValue)
+        {
+            query = query.Where(t => t.UserId == userId.Value);
+        }
+        else if (currentUserId.HasValue && !isAdmin)
+        {
+            query = query.Where(t => t.UserId == currentUserId.Value);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -50,6 +74,12 @@ public class TripsController : ControllerBase
         if (trip.TravellerCount <= 0)
         {
             return BadRequest("Traveller count must be at least 1.");
+        }
+
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId.HasValue && !trip.UserId.HasValue)
+        {
+            trip.UserId = currentUserId.Value;
         }
 
         trip.StartDate = DateTime.SpecifyKind(trip.StartDate, DateTimeKind.Utc);
@@ -85,6 +115,14 @@ public class TripsController : ControllerBase
             return NotFound($"Trip with ID {id} was not found.");
         }
 
+        var currentUserId = GetCurrentUserId();
+        var isAdmin = IsAdmin();
+
+        if (currentUserId.HasValue && !isAdmin && trip.UserId.HasValue && trip.UserId != currentUserId.Value)
+        {
+            return Forbid();
+        }
+
         if (updated.ReturnDate < updated.StartDate)
         {
             return BadRequest("Return date must be on or after the start date.");
@@ -109,6 +147,16 @@ public class TripsController : ControllerBase
         trip.TripType = updated.TripType;
         trip.Status = updated.Status;
 
+        if (updated.SelectedTransport != null) trip.SelectedTransport = updated.SelectedTransport;
+        if (updated.EstimatedDistanceKm.HasValue) trip.EstimatedDistanceKm = updated.EstimatedDistanceKm;
+        if (updated.EstimatedDurationMinutes.HasValue) trip.EstimatedDurationMinutes = updated.EstimatedDurationMinutes;
+        if (updated.EstimatedTransportCost.HasValue) trip.EstimatedTransportCost = updated.EstimatedTransportCost;
+        if (updated.StartLatitude.HasValue) trip.StartLatitude = updated.StartLatitude;
+        if (updated.StartLongitude.HasValue) trip.StartLongitude = updated.StartLongitude;
+        if (updated.DestinationLatitude.HasValue) trip.DestinationLatitude = updated.DestinationLatitude;
+        if (updated.DestinationLongitude.HasValue) trip.DestinationLongitude = updated.DestinationLongitude;
+        if (updated.RouteGeometryJson != null) trip.RouteGeometryJson = updated.RouteGeometryJson;
+
         await _context.SaveChangesAsync();
 
         return Ok(trip);
@@ -122,6 +170,14 @@ public class TripsController : ControllerBase
         if (trip == null)
         {
             return NotFound($"Trip with ID {id} was not found.");
+        }
+
+        var currentUserId = GetCurrentUserId();
+        var isAdmin = IsAdmin();
+
+        if (currentUserId.HasValue && !isAdmin && trip.UserId.HasValue && trip.UserId != currentUserId.Value)
+        {
+            return Forbid();
         }
 
         _context.Trips.Remove(trip);

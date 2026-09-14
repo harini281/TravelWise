@@ -20,4 +20,26 @@ public class Trip
     public string Status { get; set; } = "PLANNING";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Associated User (Traveller)
+    public int? UserId { get; set; }
+
+    // Real transport selection & routing telemetry
+    public string? SelectedTransport { get; set; }
+
+    public double? EstimatedDistanceKm { get; set; }
+
+    public int? EstimatedDurationMinutes { get; set; }
+
+    public decimal? EstimatedTransportCost { get; set; }
+
+    public double? StartLatitude { get; set; }
+
+    public double? StartLongitude { get; set; }
+
+    public double? DestinationLatitude { get; set; }
+
+    public double? DestinationLongitude { get; set; }
+
+    public string? RouteGeometryJson { get; set; }
 }

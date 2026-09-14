@@ -15,6 +15,8 @@ import ActivityManager from "./components/ActivityManager";
 import RiskDashboard from "./components/RiskDashboard";
 import ReadinessDashboard from "./components/ReadinessDashboard";
 import WorkflowDashboard from "./components/WorkflowDashboard";
+import TripManager from "./components/TripManager";
+import AdminDashboard from "./components/AdminDashboard";
 
 function App() {
   const [trip, setTrip] = useState(null);
@@ -109,21 +111,39 @@ function App() {
     navigateTo("login");
   };
 
+  const loadUserTrips = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const headers = user?.token ? { Authorization: `Bearer ${user.token}` } : {};
+      const response = await fetch(`${API_BASE_URL}/api/Trips`, { headers });
+      if (!response.ok) throw new Error("Failed to load user trips.");
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setTrip(data[0]);
+      } else {
+        try {
+          const fallbackRes = await fetch(`${API_BASE_URL}/api/Trips/2`);
+          if (fallbackRes.ok) {
+            const fallbackTrip = await fallbackRes.json();
+            setTrip(fallbackTrip);
+          } else {
+            setTrip(null);
+          }
+        } catch {
+          setTrip(null);
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/Trips/2`)
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to load trip context.");
-        return response.json();
-      })
-      .then((data) => {
-        setTrip(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
+    loadUserTrips();
+  }, [user?.token]);
 
   // Fetch updated user profile on mount if token exists
   useEffect(() => {
@@ -149,11 +169,12 @@ function App() {
     }
   }, [user?.token]);
 
+  const isAdmin = user?.role === "Admin";
   const isReviewerOrAdmin = user?.role === "Reviewer" || user?.role === "Admin";
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "trip", label: "My Trip", icon: "🗺️" },
+    { id: "trip", label: "Trip Planning & Map", icon: "🗺️" },
     { id: "budget", label: "Budget & Expenses", icon: "💳" },
     { id: "activities", label: "Activities", icon: "🗓️" },
     { id: "safety", label: "Safety & Risk", icon: "🛡️" },
@@ -166,12 +187,16 @@ function App() {
     navItems.push({ id: "review", label: "Workflow Review", icon: "⚖️" });
   }
 
+  if (isAdmin) {
+    navItems.push({ id: "admin", label: "Admin Workspace", icon: "🛡️" });
+  }
+
   const getPageTitle = () => {
     switch (activeTab) {
       case "dashboard":
         return "Dashboard Overview";
       case "trip":
-        return "Trip Details & Context";
+        return "Trip Planning & GIS Route";
       case "budget":
         return "Budget & Expenses";
       case "activities":
@@ -186,6 +211,8 @@ function App() {
         return "Profile & Preferences";
       case "review":
         return "AI Workflow Review";
+      case "admin":
+        return "Admin & Governance Workspace";
       default:
         return "TravelWise";
     }
@@ -370,9 +397,25 @@ function App() {
             <span style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-primary)" }}>
               {getPageTitle()}
             </span>
-            <span className="header-trip-badge">
-              {trip?.startingPlace ?? "Colombo"} ➔ {trip?.destination ?? "Ella"}
-            </span>
+            {trip ? (
+              <span
+                className="header-trip-badge"
+                style={{ cursor: "pointer" }}
+                onClick={() => setActiveTab("trip")}
+                title="Click to view road route and manage trip"
+              >
+                {trip.startingPlace} ➔ {trip.destination}
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => setActiveTab("trip")}
+                style={{ fontSize: "0.8rem", padding: "4px 10px" }}
+              >
+                ➕ Plan Trip
+              </button>
+            )}
           </div>
 
           <div className="header-user-section" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -440,55 +483,32 @@ function App() {
               )}
 
               {activeTab === "trip" && (
-                <div className="tw-card">
-                  <div className="tw-card-header">
-                    <h3 className="tw-card-title">
-                      <span>🗺️</span> {trip.destination} Expedition Overview
-                    </h3>
-                    <span className="badge badge-info">{trip.status}</span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "20px" }}>
-                    <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
-                      <span className="kpi-label">Route</span>
-                      <strong>{trip.startingPlace} ➔ {trip.destination}</strong>
-                    </div>
-                    <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
-                      <span className="kpi-label">Duration</span>
-                      <strong>4 Days (10 Oct – 13 Oct 2026)</strong>
-                    </div>
-                    <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
-                      <span className="kpi-label">Party Size</span>
-                      <strong>{trip.travellerCount} Travellers</strong>
-                    </div>
-                    <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
-                      <span className="kpi-label">Allocated Budget</span>
-                      <strong>LKR {trip.budgetAmount?.toLocaleString() ?? 80000}</strong>
-                    </div>
-                  </div>
-                  <p style={{ color: "var(--text-secondary)", lineHeight: "1.6" }}>
-                    High-altitude highland expedition through Uva Province, featuring tea plantations, mountain trail ascents, and rail architecture landmarks.
-                  </p>
-                </div>
+                <TripManager
+                  user={user}
+                  currentTrip={trip}
+                  onSelectTrip={(selected) => setTrip(selected)}
+                  onRefreshTrips={loadUserTrips}
+                />
               )}
 
               {activeTab === "budget" && (
-                <ExpenseManager tripId={2} totalBudget={trip.budgetAmount ?? 80000} />
+                <ExpenseManager tripId={trip?.id || 2} totalBudget={trip?.budgetAmount ?? 80000} />
               )}
 
               {activeTab === "activities" && (
-                <ActivityManager tripId={2} />
+                <ActivityManager tripId={trip?.id || 2} />
               )}
 
               {activeTab === "safety" && (
-                <RiskDashboard tripId={2} destination={trip.destination} />
+                <RiskDashboard tripId={trip?.id || 2} destination={trip?.destination || "Ella"} />
               )}
 
               {activeTab === "readiness" && (
-                <ReadinessDashboard tripId={2} />
+                <ReadinessDashboard tripId={trip?.id || 2} />
               )}
 
               {activeTab === "ai_planner" && (
-                <WorkflowDashboard tripId={2} user={user} />
+                <WorkflowDashboard tripId={trip?.id || 2} user={user} />
               )}
 
               {activeTab === "profile" && (
@@ -516,8 +536,12 @@ function App() {
                   <p style={{ color: "var(--text-secondary)", marginBottom: "16px", lineHeight: "1.6" }}>
                     As an authorized <strong>{user.role}</strong>, you have access to Human-in-the-Loop decision controls over AI-generated plans.
                   </p>
-                  <WorkflowDashboard tripId={2} user={user} />
+                  <WorkflowDashboard tripId={trip?.id || 2} user={user} />
                 </div>
+              )}
+
+              {activeTab === "admin" && isAdmin && (
+                <AdminDashboard user={user} />
               )}
             </>
           )}

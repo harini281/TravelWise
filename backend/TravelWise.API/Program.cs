@@ -186,6 +186,18 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""BudgetStyle"" text;
                 ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""ActivityPace"" text;
                 ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""TransportPreference"" text;
+                ALTER TABLE IF EXISTS ""Users"" ADD COLUMN IF NOT EXISTS ""IsActive"" boolean DEFAULT true NOT NULL;
+
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""UserId"" integer;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""SelectedTransport"" text;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""EstimatedDistanceKm"" double precision;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""EstimatedDurationMinutes"" integer;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""EstimatedTransportCost"" numeric;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""StartLatitude"" double precision;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""StartLongitude"" double precision;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""DestinationLatitude"" double precision;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""DestinationLongitude"" double precision;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""RouteGeometryJson"" text;
             ");
         }
     }

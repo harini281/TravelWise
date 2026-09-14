@@ -11,15 +11,21 @@ function DashboardOverview({ trip, user, onNavigate }) {
 
   useEffect(() => {
     async function loadDashboardData() {
+      const tripId = trip?.id;
+      if (!tripId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
         const [bRes, aRes, wRes, rRes, wfRes] = await Promise.allSettled([
-          fetch(`${API_BASE_URL}/api/Budgets/2/health`).then((r) => (r.ok ? r.json() : null)),
-          fetch(`${API_BASE_URL}/api/Activities/trip/2`).then((r) => (r.ok ? r.json() : [])),
-          fetch(`${API_BASE_URL}/api/Risk/weather/trip/2`).then((r) => (r.ok ? r.json() : null)),
-          fetch(`${API_BASE_URL}/api/Readiness/trip/2`).then((r) => (r.ok ? r.json() : null)),
-          fetch(`${API_BASE_URL}/api/Workflow/trip/2`).then((r) => (r.ok ? r.json() : null)),
+          fetch(`${API_BASE_URL}/api/Budgets/${tripId}/health`).then((r) => (r.ok ? r.json() : null)),
+          fetch(`${API_BASE_URL}/api/Activities/trip/${tripId}`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`${API_BASE_URL}/api/Risk/weather/trip/${tripId}`).then((r) => (r.ok ? r.json() : null)),
+          fetch(`${API_BASE_URL}/api/Readiness/trip/${tripId}`).then((r) => (r.ok ? r.json() : null)),
+          fetch(`${API_BASE_URL}/api/Workflow/trip/${tripId}`).then((r) => (r.ok ? r.json() : null)),
         ]);
 
         if (bRes.status === "fulfilled" && bRes.value) setBudgetHealth(bRes.value);
@@ -38,7 +44,7 @@ function DashboardOverview({ trip, user, onNavigate }) {
     }
 
     loadDashboardData();
-  }, []);
+  }, [trip?.id]);
 
   const totalSpent = budgetHealth?.totalSpent ?? 0;
   const totalBudget = budgetHealth?.totalBudget ?? trip?.budgetAmount ?? 80000;
@@ -163,7 +169,7 @@ function DashboardOverview({ trip, user, onNavigate }) {
               </span>
             </div>
             <h1 style={{ color: "#ffffff", fontSize: "2rem", margin: "0 0 6px", fontWeight: "700" }}>
-              Ella Adventure
+              {trip ? `${trip.destination} ${trip.tripType || "Expedition"}` : "Welcome to TravelWise"}
             </h1>
             <p style={{ color: "#cbd5e1", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "8px" }}>
               <span>{trip?.startingPlace ?? "Colombo"}</span>
@@ -183,7 +189,12 @@ function DashboardOverview({ trip, user, onNavigate }) {
               border: "1px solid rgba(255, 255, 255, 0.15)",
             }}
           >
-            <div>📅 <strong>10 Oct – 13 Oct 2026</strong> (4 Days)</div>
+            <div>
+              📅 <strong>
+                {trip?.startDate ? new Date(trip.startDate).toLocaleDateString() : "10 Oct 2026"} –{" "}
+                {trip?.returnDate ? new Date(trip.returnDate).toLocaleDateString() : "13 Oct 2026"}
+              </strong>
+            </div>
             <div>👥 <strong>{trip?.travellerCount ?? 2} Travellers</strong> • {trip?.tripType ?? "Adventure"}</div>
           </div>
         </div>
