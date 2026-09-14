@@ -47,7 +47,7 @@ function DashboardOverview({ trip, user, onNavigate }) {
   }, [trip?.id]);
 
   const totalSpent = budgetHealth?.totalSpent ?? 0;
-  const totalBudget = budgetHealth?.totalBudget ?? trip?.budgetAmount ?? 80000;
+  const totalBudget = budgetHealth?.totalBudget ?? trip?.budgetAmount ?? 0;
   const remainingBudget = budgetHealth?.remainingBudget ?? (totalBudget - totalSpent);
   const spendPct = budgetHealth?.spendingPercentage ?? (totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0);
   const budgetHealthStatus = budgetHealth?.budgetHealth ?? "HEALTHY";

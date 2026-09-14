@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../apiConfig";
 
 const API_URL = API_BASE_URL;
 
-function ActivityManager({ tripId = 2 }) {
+function ActivityManager({ tripId }) {
   const [activities, setActivities] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
@@ -40,8 +40,22 @@ function ActivityManager({ tripId = 2 }) {
   };
 
   useEffect(() => {
-    loadActivities();
+    if (tripId) {
+      loadActivities();
+    } else {
+      setActivities([]);
+      setLoading(false);
+    }
   }, [tripId]);
+
+  if (!tripId) {
+    return (
+      <section>
+        <h2 className="page-title">Activities</h2>
+        <p className="body-text">Select a saved trip to manage activities.</p>
+      </section>
+    );
+  }
 
   const handleChange = (event) => {
     const { name, value } = event.target;

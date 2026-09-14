@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
-function WorkflowDashboard({ tripId = 2, user, isReviewMode = false }) {
+function WorkflowDashboard({ tripId, user, isReviewMode = false }) {
   const [workflow, setWorkflow] = useState(null);
   const [aiResult, setAiResult] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,15 @@ function WorkflowDashboard({ tripId = 2, user, isReviewMode = false }) {
       setLoading(false);
     }
   };
+
+  if (!tripId) {
+    return (
+      <section>
+        <h2 className="page-title">AI Planning Workflow</h2>
+        <p className="body-text">Select a saved trip to run or review its planning workflow.</p>
+      </section>
+    );
+  }
 
   useEffect(() => {
     loadWorkflow();
