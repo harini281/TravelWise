@@ -1,9 +1,9 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
 const API_URL = API_BASE_URL;
 
-function ReadinessDashboard({ tripId }) {
+function ReadinessDashboard({ tripId, trip, user, onNavigate }) {
   const [requirements, setRequirements] = useState([]);
   const [items, setItems] = useState([]);
   const [assessment, setAssessment] = useState(null);
@@ -64,6 +64,65 @@ function ReadinessDashboard({ tripId }) {
       setLoading(false);
     }
   }, [tripId]);
+
+  // Empty state when no trip is planned
+  if (!tripId || !trip) {
+    return (
+      <section style={{ maxWidth: "800px", margin: "40px auto", padding: "0 16px" }}>
+        <div
+          className="tw-card"
+          style={{
+            textAlign: "center",
+            padding: "56px 24px",
+            backgroundColor: "var(--bg-surface)",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-color)",
+            boxShadow: "var(--shadow-md)",
+          }}
+        >
+          <div style={{ fontSize: "3rem", marginBottom: "16px" }}>📋</div>
+          <h2
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "2.1rem",
+              fontWeight: 600,
+              color: "var(--ink)",
+              marginBottom: "12px",
+            }}
+          >
+            Where will you go next?
+          </h2>
+          <p
+            style={{
+              color: "var(--text-secondary)",
+              fontSize: "1rem",
+              lineHeight: "1.6",
+              maxWidth: "520px",
+              margin: "0 auto 28px",
+            }}
+          >
+            Select or plan a trip across Sri Lanka to manage travel requirements, verify passports, and evaluate departure readiness scores.
+          </p>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => onNavigate && onNavigate("trip")}
+            >
+              ➕ Plan Your First Trip
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => onNavigate && onNavigate("trip")}
+            >
+              Explore Destinations
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const assessReadiness = async () => {
     try {

@@ -203,6 +203,39 @@ namespace TravelWise.API.Controllers
 
 
         // -------------------------------------------------
+        // GET LATEST WORKFLOW FOR TRIP
+        // GET /api/Workflow/trip/{tripId}/latest
+        // -------------------------------------------------
+
+        [HttpGet("trip/{tripId}/latest")]
+        public async Task<IActionResult> GetLatestTripWorkflow(int tripId)
+        {
+            var workflow = await _context.AIWorkflows
+                .Where(w => w.TripId == tripId)
+                .OrderByDescending(w => w.CreatedAt)
+                .Select(w => new
+                {
+                    w.Id,
+                    w.TripId,
+                    w.Status,
+                    w.ApprovalStatus,
+                    w.ValidationPassed,
+                    w.Reviewer,
+                    w.ApprovalComment,
+                    w.CreatedAt,
+                    w.UpdatedAt
+                })
+                .FirstOrDefaultAsync();
+
+            if (workflow == null)
+            {
+                return NotFound(new { message = "No workflow found for this trip." });
+            }
+
+            return Ok(workflow);
+        }
+
+        // -------------------------------------------------
         // UPDATE WORKFLOW STATUS
         // PUT /api/Workflow/{id}/status
         // -------------------------------------------------
@@ -262,32 +295,51 @@ namespace TravelWise.API.Controllers
                 });
             }
 
-            if (workflow.Status != "AWAITING_APPROVAL")
+            if (workflow.Status != "AWAITING_APPROVAL" && workflow.Status != "SAFE_FAILURE")
             {
                 return BadRequest(new
                 {
-                    message =
-                        "Workflow is not awaiting approval."
+                    message = "Workflow is not awaiting approval."
                 });
             }
 
-            var decision = request.Decision
-                .Trim()
-                .ToUpper();
+            var decision = (request.Decision ?? "").Trim().ToUpper();
 
             if (decision != "APPROVE" &&
                 decision != "REJECT" &&
+                decision != "REQUEST_CHANGES" &&
+                decision != "REQUEST CHANGES" &&
                 decision != "REVISE")
             {
                 return BadRequest(new
                 {
-                    message =
-                        "Decision must be APPROVE, REJECT, or REVISE."
+                    message = "Decision must be APPROVE, REQUEST_CHANGES, or REJECT."
                 });
             }
 
-            workflow.Reviewer = request.Reviewer;
-            workflow.ApprovalComment = request.Comment;
+            var comment = (request.Comment ?? "").Trim();
+            if ((decision == "REQUEST_CHANGES" || decision == "REQUEST CHANGES" || decision == "REVISE") && string.IsNullOrWhiteSpace(comment))
+            {
+                return BadRequest(new
+                {
+                    message = "A comment is required when requesting changes."
+                });
+            }
+
+            if (decision == "REJECT" && string.IsNullOrWhiteSpace(comment))
+            {
+                return BadRequest(new
+                {
+                    message = "A reason/comment is required when rejecting a plan."
+                });
+            }
+
+            var reviewerIdentifier = !string.IsNullOrWhiteSpace(request.Reviewer)
+                ? request.Reviewer
+                : User.Identity?.Name ?? "Reviewer";
+
+            workflow.Reviewer = reviewerIdentifier;
+            workflow.ApprovalComment = comment;
             workflow.UpdatedAt = DateTime.UtcNow;
 
             if (decision == "APPROVE")
@@ -302,7 +354,7 @@ namespace TravelWise.API.Controllers
             }
             else
             {
-                workflow.ApprovalStatus = "REVISION_REQUIRED";
+                workflow.ApprovalStatus = "CHANGES_REQUESTED";
                 workflow.Status = "REVISION_REQUIRED";
             }
 
@@ -310,9 +362,9 @@ namespace TravelWise.API.Controllers
 
             await AddAuditLog(
                 workflow.Id,
-                $"WORKFLOW_{decision}",
-                $"Human reviewer selected {decision}.",
-                request.Reviewer
+                $"WORKFLOW_{decision.Replace(" ", "_")}",
+                $"Reviewer decision: {decision}. Note: {(string.IsNullOrWhiteSpace(comment) ? "None" : comment)}",
+                reviewerIdentifier
             );
 
             return Ok(workflow);

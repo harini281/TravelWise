@@ -122,17 +122,7 @@ function App() {
       if (Array.isArray(data) && data.length > 0) {
         setTrip(data[0]);
       } else {
-        try {
-          const fallbackRes = await fetch(`${API_BASE_URL}/api/Trips/2`);
-          if (fallbackRes.ok) {
-            const fallbackTrip = await fallbackRes.json();
-            setTrip(fallbackTrip);
-          } else {
-            setTrip(null);
-          }
-        } catch {
-          setTrip(null);
-        }
+        setTrip(null);
       }
     } catch (err) {
       setError(err.message);
@@ -492,23 +482,49 @@ function App() {
               )}
 
               {activeTab === "budget" && (
-                <ExpenseManager tripId={trip?.id} />
+                <ExpenseManager
+                  tripId={trip?.id}
+                  trip={trip}
+                  user={user}
+                  onNavigate={(tab) => setActiveTab(tab)}
+                />
               )}
 
               {activeTab === "activities" && (
-                <ActivityManager tripId={trip?.id} />
+                <ActivityManager
+                  tripId={trip?.id}
+                  trip={trip}
+                  user={user}
+                  onNavigate={(tab) => setActiveTab(tab)}
+                />
               )}
 
               {activeTab === "safety" && (
-                <RiskDashboard tripId={trip?.id} destination={trip?.destination} />
+                <RiskDashboard
+                  tripId={trip?.id}
+                  trip={trip}
+                  destination={trip?.destination}
+                  user={user}
+                  onNavigate={(tab) => setActiveTab(tab)}
+                />
               )}
 
               {activeTab === "readiness" && (
-                <ReadinessDashboard tripId={trip?.id} />
+                <ReadinessDashboard
+                  tripId={trip?.id}
+                  trip={trip}
+                  user={user}
+                  onNavigate={(tab) => setActiveTab(tab)}
+                />
               )}
 
               {activeTab === "ai_planner" && (
-                <WorkflowDashboard tripId={trip?.id} user={user} />
+                <WorkflowDashboard
+                  tripId={trip?.id}
+                  trip={trip}
+                  user={user}
+                  onNavigate={(tab) => setActiveTab(tab)}
+                />
               )}
 
               {activeTab === "profile" && (
@@ -536,7 +552,13 @@ function App() {
                   <p style={{ color: "var(--text-secondary)", marginBottom: "16px", lineHeight: "1.6" }}>
                     As an authorized <strong>{user.role}</strong>, you have access to Human-in-the-Loop decision controls over AI-generated plans.
                   </p>
-                  <WorkflowDashboard tripId={trip?.id} user={user} />
+                  <WorkflowDashboard
+                    tripId={trip?.id}
+                    trip={trip}
+                    user={user}
+                    onNavigate={(tab) => setActiveTab(tab)}
+                    isReviewMode={true}
+                  />
                 </div>
               )}
 

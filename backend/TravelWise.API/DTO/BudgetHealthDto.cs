@@ -10,6 +10,18 @@ public class BudgetHealthDto
 
     public decimal RemainingBudget { get; set; }
 
+    public decimal ReturnReserve { get; set; }
+
+    public decimal FoodBudget { get; set; }
+
+    public decimal RemainingFoodBudget { get; set; }
+
+    public decimal AccommodationBudget { get; set; }
+
+    public decimal RemainingAccommodationBudget { get; set; }
+
+    public decimal SafeToSpend { get; set; }
+
     public decimal SpendingPercentage { get; set; }
 
     public string BudgetHealth { get; set; } = string.Empty;

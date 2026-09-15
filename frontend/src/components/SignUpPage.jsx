@@ -73,110 +73,229 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#F8FAFC",
-        backgroundImage: "radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.04) 0%, transparent 60%)",
         display: "flex",
-        fontFamily: "'Inter', sans-serif",
+        backgroundColor: "var(--mist)",
+        fontFamily: "var(--font-family)",
       }}
     >
-      {/* Left Column: Form */}
+      {/* Left Visual Pane */}
       <div
         style={{
-          flex: "1 1 540px",
+          flex: "1 1 45%",
+          position: "relative",
+          background: `linear-gradient(180deg, rgba(9, 43, 58, 0.75) 0%, rgba(6, 36, 49, 0.92) 100%), url('https://images.unsplash.com/photo-1588598198321-9735fd524a25?auto=format&fit=crop&w=1400&q=85') center/cover no-repeat`,
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "32px 36px",
-          maxWidth: "620px",
-          boxSizing: "border-box",
+          padding: "clamp(32px, 5vw, 64px)",
+          color: "#ffffff",
         }}
+        className="auth-hero-pane"
       >
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ cursor: "pointer" }} onClick={onBackToLanding}>
+            <TravelWiseLogo size={32} light showTagline />
+          </div>
           <button
             type="button"
             onClick={onBackToLanding}
-            className="auth-link-btn"
             style={{
-              color: "#64748B",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "0.9rem",
-              fontWeight: 500,
+              background: "rgba(255, 255, 255, 0.12)",
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#ffffff",
+              padding: "8px 16px",
+              borderRadius: "var(--radius-full)",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              cursor: "pointer",
             }}
           >
-            ← Back to home
+            ← Back to Home
           </button>
-          <div style={{ cursor: "pointer" }} onClick={onBackToLanding}>
-            <TravelWiseLogo size={28} />
-          </div>
-        </header>
+        </div>
 
-        <div style={{ maxWidth: "460px", width: "100%", margin: "20px auto" }} className="auth-card">
-          <h1
+        <div style={{ maxWidth: "480px", my: "auto" }}>
+          <p
             style={{
-              fontSize: "1.75rem",
-              fontWeight: 800,
-              color: "#0F2B48",
-              marginBottom: "8px",
-              letterSpacing: "-0.02em",
+              color: "var(--teal-border)",
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              marginBottom: "14px",
             }}
           >
-            Create your account
-          </h1>
-          <p style={{ color: "#64748B", fontSize: "0.92rem", marginBottom: "20px" }}>
-            Join TravelWise and start planning smarter journeys.
+            Start your journey
           </p>
+          <h2
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "clamp(2.4rem, 4vw, 3.6rem)",
+              fontWeight: 500,
+              lineHeight: 1.05,
+              letterSpacing: "-0.03em",
+              color: "#ffffff",
+              margin: "0 0 20px",
+            }}
+          >
+            Journeys worth taking<br />
+            <em style={{ color: "#8ae0d5", fontStyle: "italic" }}>their time over.</em>
+          </h2>
+          <p
+            style={{
+              color: "rgba(255, 255, 255, 0.85)",
+              fontSize: "1.05rem",
+              lineHeight: 1.6,
+              marginBottom: "28px",
+            }}
+          >
+            Join as a Traveller to experience personalized trip planning, weather risk analysis, and smart budgeting.
+          </p>
+        </div>
 
+        <div style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "0.75rem" }}>
+          © TravelWise Intelligent Journey Planner • Sri Lanka
+        </div>
+      </div>
+
+      {/* Right Form Card */}
+      <div
+        style={{
+          flex: "1 1 55%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "clamp(24px, 4vw, 48px)",
+          backgroundColor: "var(--mist)",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "500px",
+            backgroundColor: "#ffffff",
+            padding: "clamp(28px, 4vw, 40px)",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-color)",
+            boxShadow: "var(--shadow-lg)",
+            margin: "auto 0",
+          }}
+        >
+          {/* Header */}
+          <div style={{ marginBottom: "24px" }}>
+            <span
+              style={{
+                color: "var(--teal)",
+                fontSize: "0.76rem",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              New Traveller Membership
+            </span>
+            <h1
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "2rem",
+                fontWeight: 600,
+                color: "var(--ink)",
+                margin: "4px 0 6px",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Create Account
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", margin: 0 }}>
+              All new members are automatically enrolled with verified Traveller role privileges.
+            </p>
+          </div>
+
+          {/* Error Banner */}
           {error && (
             <div
               style={{
-                backgroundColor: "#FEF2F2",
-                border: "1px solid #FCA5A5",
-                color: "#991B1B",
-                borderRadius: "8px",
-                padding: "12px 14px",
+                backgroundColor: "var(--danger-bg)",
+                border: "1px solid var(--danger-border)",
+                color: "var(--danger)",
+                borderRadius: "var(--radius-md)",
+                padding: "12px 16px",
                 fontSize: "0.88rem",
                 marginBottom: "20px",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
               }}
             >
-              ⚠️ {error}
+              <span>⚠️</span>
+              <span>{error}</span>
             </div>
           )}
 
+          {/* Form */}
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: "14px" }}>
-              <label htmlFor="signup-fullname" className="auth-label">
-                Full Name
-              </label>
-              <input
-                id="signup-fullname"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Kasun Perera"
-                required
-                className="auth-input no-icon"
-              />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+              <div>
+                <label
+                  htmlFor="signup-fullname"
+                  style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}
+                >
+                  Full Name
+                </label>
+                <input
+                  id="signup-fullname"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Kasun Perera"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "11px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-color)",
+                    fontSize: "0.92rem",
+                    color: "var(--text-primary)",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="signup-username"
+                  style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}
+                >
+                  Username
+                </label>
+                <input
+                  id="signup-username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ""))}
+                  placeholder="e.g. kasunp"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "11px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-color)",
+                    fontSize: "0.92rem",
+                    color: "var(--text-primary)",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
             </div>
 
             <div style={{ marginBottom: "14px" }}>
-              <label htmlFor="signup-username" className="auth-label">
-                Username
-              </label>
-              <input
-                id="signup-username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Choose a unique username"
-                required
-                className="auth-input no-icon"
-              />
-            </div>
-
-            <div style={{ marginBottom: "14px" }}>
-              <label htmlFor="signup-email" className="auth-label">
+              <label
+                htmlFor="signup-email"
+                style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}
+              >
                 Email Address
               </label>
               <input
@@ -186,155 +305,159 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="auth-input no-icon"
+                style={{
+                  width: "100%",
+                  padding: "11px 12px",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border-color)",
+                  fontSize: "0.92rem",
+                  color: "var(--text-primary)",
+                  boxSizing: "border-box",
+                }}
               />
             </div>
 
-            <div style={{ marginBottom: "14px" }}>
-              <label htmlFor="signup-password" className="auth-label">
-                Password
-              </label>
-              <div className="auth-input-wrapper">
-                <input
-                  id="signup-password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a password"
-                  required
-                  className="auth-input no-icon has-toggle"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="auth-password-toggle"
-                  title={showPassword ? "Hide password" : "Show password"}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+              <div>
+                <label
+                  htmlFor="signup-password"
+                  style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}
                 >
-                  {showPassword ? "👁️‍🗨️" : "👁️"}
-                </button>
+                  Password
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    id="signup-password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min 8 chars"
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "11px 36px 11px 12px",
+                      borderRadius: "var(--radius-md)",
+                      border: "1px solid var(--border-color)",
+                      fontSize: "0.92rem",
+                      color: "var(--text-primary)",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    {showPassword ? "👁️" : "🙈"}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="signup-confirm"
+                  style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}
+                >
+                  Confirm Password
+                </label>
+                <input
+                  id="signup-confirm"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat password"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "11px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: `1px solid ${confirmPassword ? (passwordsMatch ? "var(--success)" : "var(--danger)") : "var(--border-color)"}`,
+                    fontSize: "0.92rem",
+                    color: "var(--text-primary)",
+                    boxSizing: "border-box",
+                  }}
+                />
               </div>
             </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              <label htmlFor="signup-confirm-password" className="auth-label">
-                Confirm Password
-              </label>
-              <input
-                id="signup-confirm-password"
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
-                required
-                className="auth-input no-icon"
-              />
-            </div>
-
-            {/* Checklist Requirements */}
+            {/* Password strength checklist */}
             <div
               style={{
+                backgroundColor: "var(--bg-surface-alt)",
+                padding: "10px 14px",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "0.78rem",
                 marginBottom: "20px",
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: "6px",
-                fontSize: "0.82rem",
-                padding: "10px 12px",
-                backgroundColor: "#F8FAFC",
-                borderRadius: "8px",
-                border: "1px solid #E2E8F0",
               }}
             >
-              <div style={{ color: hasMinLength ? "#1D4ED8" : "#64748B", fontWeight: hasMinLength ? 600 : 400 }}>
-                {hasMinLength ? "✓" : "○"} 8+ characters
-              </div>
-              <div style={{ color: hasLetter ? "#1D4ED8" : "#64748B", fontWeight: hasLetter ? 600 : 400 }}>
-                {hasLetter ? "✓" : "○"} At least 1 letter
-              </div>
-              <div style={{ color: hasNumber ? "#1D4ED8" : "#64748B", fontWeight: hasNumber ? 600 : 400 }}>
-                {hasNumber ? "✓" : "○"} At least 1 number
-              </div>
-              <div style={{ color: passwordsMatch ? "#1D4ED8" : "#64748B", fontWeight: passwordsMatch ? 600 : 400 }}>
+              <span style={{ color: hasMinLength ? "var(--success)" : "var(--text-muted)" }}>
+                {hasMinLength ? "✓" : "○"} At least 8 characters
+              </span>
+              <span style={{ color: hasLetter ? "var(--success)" : "var(--text-muted)" }}>
+                {hasLetter ? "✓" : "○"} Contains letters
+              </span>
+              <span style={{ color: hasNumber ? "var(--success)" : "var(--text-muted)" }}>
+                {hasNumber ? "✓" : "○"} Contains numbers
+              </span>
+              <span style={{ color: passwordsMatch ? "var(--success)" : "var(--text-muted)" }}>
                 {passwordsMatch ? "✓" : "○"} Passwords match
-              </div>
+              </span>
             </div>
 
-            {/* Sign Up Primary 3D Button */}
             <button
-              id="signup-submit-btn"
               type="submit"
               disabled={loading || !isFormValid}
-              className="auth-btn-primary"
+              style={{
+                width: "100%",
+                padding: "14px",
+                backgroundColor: isFormValid ? "var(--teal)" : "var(--border-color)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "var(--radius-md)",
+                fontSize: "1rem",
+                fontWeight: 700,
+                cursor: isFormValid && !loading ? "pointer" : "not-allowed",
+                boxShadow: isFormValid ? "0 8px 20px rgba(22, 169, 157, 0.35)" : "none",
+                transition: "all 0.2s ease",
+              }}
             >
-              {loading ? (
-                <>
-                  <span style={{ animation: "spin 1s linear infinite" }}>🔄</span>
-                  <span>Creating Account...</span>
-                </>
-              ) : (
-                "Create Account"
-              )}
+              {loading ? "Creating Account..." : "Create Account & Get Started →"}
             </button>
           </form>
 
-          <div style={{ textAlign: "center", marginTop: "20px", fontSize: "0.9rem", color: "#64748B" }}>
-            Already have an account?{" "}
+          {/* Sign In Link */}
+          <div style={{ textAlign: "center", marginTop: "20px" }}>
+            <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+              Already have an account?{" "}
+            </span>
             <button
-              id="navigate-signin-btn"
               type="button"
               onClick={onNavigateSignIn}
-              className="auth-link-btn"
-              style={{ fontSize: "0.92rem" }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--teal)",
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                padding: 0,
+              }}
             >
-              Sign in
+              Sign In
             </button>
           </div>
-        </div>
-
-        <footer style={{ textAlign: "center", fontSize: "0.8rem", color: "#94A3B8" }}>
-          © {new Date().getFullYear()} TravelWise • All rights reserved
-        </footer>
-      </div>
-
-      {/* Right Column: Travel Visual & Quote */}
-      <div
-        className="signup-split-visual"
-        style={{
-          flex: "1 1 500px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-end",
-          padding: "48px",
-          position: "relative",
-          backgroundImage: `linear-gradient(to top, rgba(15, 43, 72, 0.94) 0%, rgba(15, 43, 72, 0.55) 45%, rgba(15, 43, 72, 0.25) 100%), url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          color: "#FFFFFF",
-        }}
-      >
-        <div style={{ maxWidth: "440px", position: "relative", zIndex: 2 }}>
-          <p
-            style={{
-              fontSize: "2.1rem",
-              fontWeight: 800,
-              lineHeight: 1.25,
-              fontStyle: "italic",
-              marginBottom: "12px",
-              color: "#FFFFFF",
-              textShadow: "0 3px 12px rgba(0, 0, 0, 0.7)",
-            }}
-          >
-            "Good travellers make better humans."
-          </p>
-          <p
-            style={{
-              fontSize: "1rem",
-              color: "rgba(255, 255, 255, 0.9)",
-              fontWeight: 500,
-              textShadow: "0 2px 8px rgba(0, 0, 0, 0.6)",
-            }}
-          >
-            Join thousands of travellers planning smarter journeys with TravelWise.
-          </p>
         </div>
       </div>
     </div>

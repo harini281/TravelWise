@@ -207,6 +207,8 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""BaggagePlan"" text;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""SpentAmount"" numeric DEFAULT 0 NOT NULL;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""FoodBudget"" numeric DEFAULT 0 NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""AccommodationBudget"" numeric DEFAULT 0 NOT NULL;
+                ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""NightlyAccommodationRate"" numeric;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""ReturnBudgetReserve"" numeric DEFAULT 0 NOT NULL;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""OriginalReturnDate"" timestamp with time zone;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""ReturnTransport"" text;

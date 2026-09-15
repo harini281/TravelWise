@@ -38,160 +38,166 @@ export default function ForgotPasswordPage({ onNavigateLogin }) {
   };
 
   return (
-    <div className="auth-page-container">
-      <header style={{ padding: "24px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "var(--mist)",
+        fontFamily: "var(--font-family)",
+      }}
+    >
+      <header style={{ padding: "24px 36px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button
           type="button"
           onClick={onNavigateLogin}
-          className="auth-link-btn"
           style={{
-            color: "#64748B",
+            background: "none",
+            border: "none",
+            color: "var(--text-secondary)",
             fontSize: "0.92rem",
-            fontWeight: 500,
+            fontWeight: 600,
+            cursor: "pointer",
           }}
         >
-          ← Back to sign in
+          ← Back to Sign In
         </button>
         <div style={{ cursor: "pointer" }} onClick={onNavigateLogin}>
-          <TravelWiseLogo size={28} />
+          <TravelWiseLogo size={30} />
         </div>
       </header>
 
-      <main style={{ maxWidth: "440px", width: "100%", margin: "20px auto", padding: "0 20px" }}>
-        <div className="auth-card" style={{ textAlign: "center" }}>
-          <div style={{ marginBottom: "24px" }}>
-            <TravelWiseLogo size={32} showTagline={false} />
+      <main style={{ maxWidth: "460px", width: "100%", margin: "40px auto", padding: "0 24px" }}>
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-color)",
+            padding: "36px 32px",
+            boxShadow: "var(--shadow-lg)",
+          }}
+        >
+          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+            <span
+              style={{
+                color: "var(--teal)",
+                fontSize: "0.76rem",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              Account Recovery
+            </span>
             <h1
               style={{
-                fontSize: "1.65rem",
-                fontWeight: 800,
-                color: "#0F2B48",
-                marginTop: "16px",
-                marginBottom: "8px",
-                letterSpacing: "-0.02em",
+                fontFamily: "var(--font-serif)",
+                fontSize: "1.9rem",
+                fontWeight: 600,
+                color: "var(--ink)",
+                margin: "6px 0 8px",
               }}
             >
               Forgot Password
             </h1>
-            <p style={{ color: "#64748B", fontSize: "0.92rem", margin: 0, lineHeight: 1.5 }}>
-              Enter the email associated with your TravelWise account and we'll send you a link to reset your password.
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", margin: 0 }}>
+              Enter your account email to receive a secure, single-use password reset link.
             </p>
           </div>
 
-          {error && (
-            <div
-              style={{
-                backgroundColor: "#FEF2F2",
-                border: "1px solid #FCA5A5",
-                color: "#991B1B",
-                borderRadius: "8px",
-                padding: "12px 14px",
-                fontSize: "0.88rem",
-                marginBottom: "20px",
-                textAlign: "left",
-              }}
-            >
-              ⚠️ {error}
-            </div>
-          )}
-
           {submitted ? (
-            <div style={{ padding: "12px 0" }}>
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  backgroundColor: "#F0FDFA",
-                  color: "#0D9488",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.8rem",
-                  margin: "0 auto 16px",
-                }}
-              >
-                ✉️
-              </div>
-              <h3 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#0F2B48", marginBottom: "8px" }}>
-                Check your email
+            <div style={{ textAlign: "center", padding: "16px 0" }}>
+              <div style={{ fontSize: "2.8rem", marginBottom: "12px" }}>📬</div>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "8px" }}>
+                Check Your Inbox
               </h3>
-              <p style={{ color: "#64748B", fontSize: "0.92rem", lineHeight: 1.6, marginBottom: "24px" }}>
-                If an account exists for <strong>{email}</strong>, password reset instructions have been sent.
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.5, marginBottom: "24px" }}>
+                If an account exists for <strong>{email}</strong>, a reset link with instructions has been dispatched.
               </p>
               <button
                 type="button"
                 onClick={onNavigateLogin}
-                className="auth-btn-primary"
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  backgroundColor: "var(--teal)",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "0.95rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
               >
-                Back to Sign In
+                Return to Sign In
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} style={{ textAlign: "left" }}>
-              <div style={{ marginBottom: "24px" }}>
-                <label htmlFor="forgot-email" className="auth-label">
-                  Email Address
-                </label>
-                <div className="auth-input-wrapper">
-                  <span className="auth-input-icon">✉️</span>
-                  <input
-                    id="forgot-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    className="auth-input"
-                  />
+            <form onSubmit={handleSubmit}>
+              {error && (
+                <div
+                  style={{
+                    backgroundColor: "var(--danger-bg)",
+                    border: "1px solid var(--danger-border)",
+                    color: "var(--danger)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "12px 14px",
+                    fontSize: "0.88rem",
+                    marginBottom: "18px",
+                  }}
+                >
+                  ⚠️ {error}
                 </div>
+              )}
+
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  htmlFor="forgot-email"
+                  style={{ display: "block", fontSize: "0.86rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "6px" }}
+                >
+                  Account Email
+                </label>
+                <input
+                  id="forgot-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. traveller@example.com"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-color)",
+                    fontSize: "0.95rem",
+                    color: "var(--text-primary)",
+                    boxSizing: "border-box",
+                  }}
+                />
               </div>
 
               <button
-                id="forgot-submit-btn"
                 type="submit"
                 disabled={loading}
-                className="auth-btn-primary"
+                style={{
+                  width: "100%",
+                  padding: "13px",
+                  backgroundColor: "var(--teal)",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "0.98rem",
+                  fontWeight: 700,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  boxShadow: "0 6px 16px rgba(22, 169, 157, 0.3)",
+                }}
               >
-                {loading ? (
-                  <>
-                    <span style={{ animation: "spin 1s linear infinite" }}>🔄</span>
-                    <span>Sending link...</span>
-                  </>
-                ) : (
-                  "Send Reset Link"
-                )}
+                {loading ? "Sending link..." : "Send Reset Link →"}
               </button>
-
-              <div style={{ textAlign: "center", marginTop: "24px", fontSize: "0.92rem", color: "#64748B" }}>
-                Remember your password?{" "}
-                <button
-                  type="button"
-                  onClick={onNavigateLogin}
-                  className="auth-link-btn"
-                  style={{ fontSize: "0.92rem" }}
-                >
-                  Sign in
-                </button>
-              </div>
             </form>
           )}
         </div>
       </main>
-
-      <footer style={{ padding: "0 0 16px 0", textAlign: "center" }}>
-        <svg
-          viewBox="0 0 1440 80"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ width: "100%", height: "60px", display: "block", opacity: 0.4 }}
-        >
-          <path
-            d="M0 80L120 50L240 65L360 40L480 60L600 30L720 55L840 35L960 50L1080 30L1200 60L1320 45L1440 70V80H0Z"
-            fill="#CBD5E1"
-          />
-        </svg>
-      </footer>
     </div>
   );
 }

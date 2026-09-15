@@ -94,18 +94,18 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#F8FAFC",
-        fontFamily: "'Inter', sans-serif",
+        backgroundColor: "var(--mist)",
+        fontFamily: "var(--font-family)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
       }}
     >
       {/* Top Header */}
-      <header style={{ padding: "20px 32px", borderBottom: "1px solid #E2E8F0", backgroundColor: "#FFFFFF" }}>
+      <header style={{ padding: "20px 32px", borderBottom: "1px solid var(--border-color)", backgroundColor: "#ffffff" }}>
         <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <TravelWiseLogo size={28} />
-          <span style={{ fontSize: "0.85rem", color: "#64748B", fontWeight: 500 }}>
+          <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 500 }}>
             Personalizing for <strong>{user?.fullName || user?.username}</strong>
           </span>
         </div>
@@ -115,14 +115,14 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
       <main style={{ maxWidth: "780px", width: "100%", margin: "32px auto", padding: "0 20px" }}>
         <div
           style={{
-            backgroundColor: "#FFFFFF",
-            borderRadius: "16px",
-            border: "1px solid #E2E8F0",
-            boxShadow: "0 8px 24px rgba(15, 43, 72, 0.06)",
+            backgroundColor: "#ffffff",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-color)",
+            boxShadow: "var(--shadow-lg)",
             padding: "36px 32px",
           }}
         >
-          {/* Progress Indicator (matching reference Screen 5) */}
+          {/* Progress Indicator */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "32px" }}>
             {[
               { num: 1, label: "Travel Style" },
@@ -137,8 +137,8 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                       width: "34px",
                       height: "34px",
                       borderRadius: "50%",
-                      backgroundColor: step >= st.num ? "#0F2B48" : "#E2E8F0",
-                      color: step >= st.num ? "#FFFFFF" : "#64748B",
+                      backgroundColor: step >= st.num ? "var(--teal)" : "var(--border-color)",
+                      color: step >= st.num ? "#ffffff" : "var(--text-muted)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -151,8 +151,8 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                   </div>
                   <span
                     style={{
-                      fontSize: "0.74rem",
-                      color: step >= st.num ? "#0F2B48" : "#94A3B8",
+                      fontSize: "0.76rem",
+                      color: step >= st.num ? "var(--ink)" : "var(--text-muted)",
                       fontWeight: step === st.num ? 700 : 500,
                       marginTop: "4px",
                     }}
@@ -165,7 +165,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                     style={{
                       width: "60px",
                       height: "2px",
-                      backgroundColor: step > st.num ? "#0F2B48" : "#E2E8F0",
+                      backgroundColor: step > st.num ? "var(--teal)" : "var(--border-color)",
                       margin: "0 10px 18px",
                       transition: "background-color 0.2s",
                     }}
@@ -176,10 +176,30 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
           </div>
 
           <div style={{ textAlign: "center", marginBottom: "28px" }}>
-            <h1 style={{ fontSize: "1.7rem", fontWeight: 800, color: "#0F2B48", marginBottom: "6px" }}>
-              Let's personalize your experience
+            <span
+              style={{
+                color: "var(--teal)",
+                fontSize: "0.76rem",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              First-Time Setup
+            </span>
+            <h1
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "2rem",
+                fontWeight: 600,
+                color: "var(--ink)",
+                marginTop: "4px",
+                marginBottom: "6px",
+              }}
+            >
+              Let&apos;s personalize your experience
             </h1>
-            <p style={{ color: "#64748B", fontSize: "0.95rem", margin: 0 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", margin: 0 }}>
               Tell us a little about your travel preferences to tailor itineraries and recommendations.
             </p>
           </div>

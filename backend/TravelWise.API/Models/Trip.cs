@@ -17,6 +17,10 @@ public class Trip
 
     public decimal FoodBudget { get; set; }
 
+    public decimal AccommodationBudget { get; set; }
+
+    public decimal? NightlyAccommodationRate { get; set; }
+
     public decimal ReturnBudgetReserve { get; set; }
 
     public DateTime? OriginalReturnDate { get; set; }

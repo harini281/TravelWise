@@ -65,49 +65,169 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
   };
 
   return (
-    <div className="auth-page-container">
-      {/* Top bar with back to home */}
-      <header style={{ padding: "20px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <button
-          type="button"
-          onClick={onBackToLanding}
-          className="auth-link-btn"
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        backgroundColor: "var(--mist)",
+        fontFamily: "var(--font-family)",
+      }}
+    >
+      {/* Left side: Premium Sri Lanka Travel Visual (Desktop) */}
+      <div
+        style={{
+          flex: "1 1 50%",
+          position: "relative",
+          background: `linear-gradient(180deg, rgba(9, 43, 58, 0.75) 0%, rgba(6, 36, 49, 0.92) 100%), url('https://images.unsplash.com/photo-1586613834526-6f8b5c7d0ca5?auto=format&fit=crop&w=1400&q=85') center/cover no-repeat`,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: "clamp(32px, 5vw, 64px)",
+          color: "#ffffff",
+        }}
+        className="auth-hero-pane"
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ cursor: "pointer" }} onClick={onBackToLanding}>
+            <TravelWiseLogo size={32} light showTagline />
+          </div>
+          <button
+            type="button"
+            onClick={onBackToLanding}
+            style={{
+              background: "rgba(255, 255, 255, 0.12)",
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#ffffff",
+              padding: "8px 16px",
+              borderRadius: "var(--radius-full)",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+          >
+            ← Back to Home
+          </button>
+        </div>
+
+        <div style={{ maxWidth: "480px", my: "auto" }}>
+          <p
+            style={{
+              color: "var(--teal-border)",
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              marginBottom: "14px",
+            }}
+          >
+            Travel with intention
+          </p>
+          <h2
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "clamp(2.4rem, 4vw, 3.6rem)",
+              fontWeight: 500,
+              lineHeight: 1.05,
+              letterSpacing: "-0.03em",
+              color: "#ffffff",
+              margin: "0 0 20px",
+            }}
+          >
+            Go further.<br />
+            <em style={{ color: "#8ae0d5", fontStyle: "italic" }}>Feel closer.</em>
+          </h2>
+          <p
+            style={{
+              color: "rgba(255, 255, 255, 0.85)",
+              fontSize: "1.05rem",
+              lineHeight: 1.6,
+              marginBottom: "32px",
+            }}
+          >
+            Intelligent itinerary planning, real-time weather telemetry, protected return reserves, and human governance.
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "24px",
+              borderTop: "1px solid rgba(255, 255, 255, 0.2)",
+              paddingTop: "24px",
+            }}
+          >
+            <div>
+              <strong style={{ fontSize: "1.2rem", display: "block", color: "#ffffff" }}>100%</strong>
+              <small style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.75rem" }}>Deterministic Budget</small>
+            </div>
+            <div>
+              <strong style={{ fontSize: "1.2rem", display: "block", color: "#ffffff" }}>Open-Meteo</strong>
+              <small style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.75rem" }}>Live Atmospheric Telemetry</small>
+            </div>
+            <div>
+              <strong style={{ fontSize: "1.2rem", display: "block", color: "#ffffff" }}>Human-in-Loop</strong>
+              <small style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.75rem" }}>Reviewer Accountability</small>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "0.75rem" }}>
+          © TravelWise Intelligent Journey Planner • Sri Lanka
+        </div>
+      </div>
+
+      {/* Right side: Clean, High-Contrast Auth Card Form */}
+      <div
+        style={{
+          flex: "1 1 50%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "clamp(24px, 5vw, 64px)",
+          backgroundColor: "var(--mist)",
+          position: "relative",
+        }}
+      >
+        <div
           style={{
-            color: "#64748B",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "0.92rem",
-            fontWeight: 500,
+            width: "100%",
+            maxWidth: "460px",
+            backgroundColor: "#ffffff",
+            padding: "clamp(28px, 4vw, 44px)",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-color)",
+            boxShadow: "var(--shadow-lg)",
           }}
         >
-          ← Back to home
-        </button>
-        <div style={{ cursor: "pointer" }} onClick={onBackToLanding}>
-          <TravelWiseLogo size={28} />
-        </div>
-      </header>
-
-      {/* Center Auth Card */}
-      <main style={{ width: "100%", maxWidth: "440px", margin: "20px auto", padding: "0 20px" }}>
-        <div className="auth-card">
-          {/* Logo Brand Header */}
-          <div style={{ textAlign: "center", marginBottom: "28px" }}>
-            <TravelWiseLogo size={32} showTagline={false} />
+          {/* Header */}
+          <div style={{ marginBottom: "28px" }}>
+            <span
+              style={{
+                color: "var(--teal)",
+                fontSize: "0.76rem",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              Secure Account Access
+            </span>
             <h1
               style={{
-                fontSize: "1.65rem",
-                fontWeight: 800,
-                color: "#0F2B48",
-                marginTop: "16px",
-                marginBottom: "6px",
+                fontFamily: "var(--font-serif)",
+                fontSize: "2rem",
+                fontWeight: 600,
+                color: "var(--ink)",
+                margin: "6px 0 8px",
                 letterSpacing: "-0.02em",
               }}
             >
-              Welcome back
+              Sign In
             </h1>
-            <p style={{ color: "#64748B", fontSize: "0.92rem", margin: 0 }}>
-              Sign in to continue your travel planning journey.
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem", margin: 0 }}>
+              Enter your credentials to continue your planned journeys.
             </p>
           </div>
 
@@ -115,16 +235,16 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
           {error && (
             <div
               style={{
-                backgroundColor: "#FEF2F2",
-                border: "1px solid #FCA5A5",
-                color: "#991B1B",
-                borderRadius: "8px",
-                padding: "12px 14px",
+                backgroundColor: "var(--danger-bg)",
+                border: "1px solid var(--danger-border)",
+                color: "var(--danger)",
+                borderRadius: "var(--radius-md)",
+                padding: "12px 16px",
                 fontSize: "0.88rem",
                 marginBottom: "20px",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                gap: "10px",
               }}
             >
               <span>⚠️</span>
@@ -132,191 +252,243 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
             </div>
           )}
 
-          {/* Sign In Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: "18px" }}>
-              <label htmlFor="signin-identifier" className="auth-label">
+              <label
+                htmlFor="signin-identifier"
+                style={{
+                  display: "block",
+                  fontSize: "0.86rem",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                  marginBottom: "6px",
+                }}
+              >
                 Email or Username
               </label>
-              <div className="auth-input-wrapper">
-                <span className="auth-input-icon">👤</span>
-                <input
-                  id="signin-identifier"
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="you@example.com or traveller"
-                  required
-                  className="auth-input"
-                />
-              </div>
+              <input
+                id="signin-identifier"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="traveller or you@example.com"
+                required
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border-color)",
+                  backgroundColor: "#ffffff",
+                  fontSize: "0.95rem",
+                  color: "var(--text-primary)",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  transition: "border-color 0.2s ease",
+                }}
+              />
             </div>
 
-            <div style={{ marginBottom: "20px" }}>
-              <label htmlFor="signin-password" className="auth-label">
-                Password
-              </label>
-              <div className="auth-input-wrapper">
-                <span className="auth-input-icon">🔒</span>
+            <div style={{ marginBottom: "18px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <label
+                  htmlFor="signin-password"
+                  style={{
+                    fontSize: "0.86rem",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={onNavigateForgotPassword}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--teal)",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  Forgot Password?
+                </button>
+              </div>
+              <div style={{ position: "relative" }}>
                 <input
                   id="signin-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Enter your account password"
                   required
-                  className="auth-input has-toggle"
+                  style={{
+                    width: "100%",
+                    padding: "12px 42px 12px 14px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-color)",
+                    backgroundColor: "#ffffff",
+                    fontSize: "0.95rem",
+                    color: "var(--text-primary)",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="auth-password-toggle"
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    fontSize: "1rem",
+                    padding: 0,
+                  }}
                   title={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? "👁️‍🗨️" : "👁️"}
+                  {showPassword ? "👁️" : "🙈"}
                 </button>
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "24px",
-                fontSize: "0.88rem",
-              }}
-            >
-              <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#475569" }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "24px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.86rem", color: "var(--text-secondary)", cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ accentColor: "#2563eb", width: "16px", height: "16px", cursor: "pointer" }}
+                  style={{ accentColor: "var(--teal)" }}
                 />
-                <span style={{ fontWeight: 500 }}>Remember me</span>
+                Remember me on this browser
               </label>
-
-              <button
-                type="button"
-                onClick={onNavigateForgotPassword}
-                className="auth-link-btn"
-                style={{ fontSize: "0.88rem" }}
-              >
-                Forgot password?
-              </button>
             </div>
 
-            {/* Sign In Button */}
             <button
-              id="signin-submit-btn"
               type="submit"
               disabled={loading}
-              className="auth-btn-primary"
+              style={{
+                width: "100%",
+                padding: "14px",
+                backgroundColor: "var(--teal)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "var(--radius-md)",
+                fontSize: "1rem",
+                fontWeight: 700,
+                cursor: loading ? "not-allowed" : "pointer",
+                boxShadow: "0 8px 20px rgba(22, 169, 157, 0.35)",
+                transition: "all 0.2s ease",
+              }}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Signing in..." : "Sign In to TravelWise →"}
             </button>
           </form>
 
-          {/* Examiner Viva Demo Quick Fill Helper */}
-          <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px dashed #E2E8F0" }}>
-            <button
-              type="button"
-              onClick={() => setShowQuickFill(!showQuickFill)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#64748B",
-                fontSize: "0.8rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                width: "100%",
-                cursor: "pointer",
-                padding: "4px",
-              }}
-            >
-              <span>🎓 Viva Voce Examiner Demo Accounts</span>
-              <span>{showQuickFill ? "▴" : "▾"}</span>
-            </button>
-
-            {showQuickFill && (
-              <div
+          {/* Quick Fill Testing Assist */}
+          <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid var(--border-light)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Testing Accounts:</span>
+              <button
+                type="button"
+                onClick={() => setShowQuickFill(!showQuickFill)}
                 style={{
-                  marginTop: "12px",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: "8px",
+                  background: "none",
+                  border: "none",
+                  color: "var(--teal)",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
                 }}
               >
+                {showQuickFill ? "Hide Quick Fill ▲" : "Quick Fill ▼"}
+              </button>
+            </div>
+
+            {showQuickFill && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginTop: "10px" }}>
                 <button
                   type="button"
                   onClick={() => handleQuickFill("traveller", "Traveller123!")}
-                  className="auth-demo-card"
-                  style={{ color: "#1E40AF" }}
+                  style={{
+                    padding: "8px 6px",
+                    backgroundColor: "var(--bg-surface-alt)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                    cursor: "pointer",
+                  }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: "0.82rem" }}>Traveller</div>
-                  <div style={{ fontSize: "0.68rem", color: "#64748B", fontWeight: 400 }}>Standard</div>
+                  🎒 Traveller
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickFill("reviewer", "Reviewer123!")}
-                  className="auth-demo-card"
-                  style={{ color: "#0F766E" }}
+                  style={{
+                    padding: "8px 6px",
+                    backgroundColor: "var(--bg-surface-alt)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                    cursor: "pointer",
+                  }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: "0.82rem" }}>Reviewer</div>
-                  <div style={{ fontSize: "0.68rem", color: "#0F766E", fontWeight: 400 }}>Approval</div>
+                  🛡️ Reviewer
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickFill("admin", "Admin123!")}
-                  className="auth-demo-card"
-                  style={{ color: "#DC2626" }}
+                  style={{
+                    padding: "8px 6px",
+                    backgroundColor: "var(--bg-surface-alt)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                    cursor: "pointer",
+                  }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: "0.82rem" }}>Admin</div>
-                  <div style={{ fontSize: "0.68rem", color: "#991B1B", fontWeight: 400 }}>Full Access</div>
+                  ⚡ Admin
                 </button>
               </div>
             )}
           </div>
 
           {/* Create Account Link */}
-          <div style={{ textAlign: "center", marginTop: "24px", fontSize: "0.92rem", color: "#64748B" }}>
-            Don't have an account?{" "}
+          <div style={{ textAlign: "center", marginTop: "24px" }}>
+            <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+              Don&apos;t have an account yet?{" "}
+            </span>
             <button
-              id="navigate-signup-btn"
               type="button"
               onClick={onNavigateSignUp}
-              className="auth-link-btn"
-              style={{ fontSize: "0.92rem" }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--teal)",
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                padding: 0,
+              }}
             >
-              Create account
+              Create Account
             </button>
           </div>
         </div>
-      </main>
-
-      {/* Subdued Scenic Mountain Graphic Base (matching reference mockup) */}
-      <footer style={{ padding: "0 0 16px 0", textAlign: "center" }}>
-        <svg
-          viewBox="0 0 1440 80"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ width: "100%", height: "60px", display: "block", opacity: 0.4 }}
-        >
-          <path
-            d="M0 80L120 50L240 65L360 40L480 60L600 30L720 55L840 35L960 50L1080 30L1200 60L1320 45L1440 70V80H0Z"
-            fill="#CBD5E1"
-          />
-          <path
-            d="M0 80L160 60L320 70L480 50L640 68L800 45L960 62L1120 48L1280 65L1440 55V80H0Z"
-            fill="#94A3B8"
-            opacity="0.5"
-          />
-        </svg>
-      </footer>
+      </div>
     </div>
   );
 }
