@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
@@ -167,7 +168,7 @@ function RiskDashboard({ tripId, trip, destination, user, onNavigate }) {
   };
 
   const getWeatherName = (code) => {
-    if (code === undefined || code === null) return "Clear Conditions";
+    if (code === undefined || code === null) return "Conditions unavailable";
     if (code >= 95) return "Thunderstorm";
     if (code >= 80) return "Rain Showers";
     if (code >= 51) return "Drizzle / Rain";
@@ -393,7 +394,7 @@ function RiskDashboard({ tripId, trip, destination, user, onNavigate }) {
             style={{
               padding: "20px 24px",
               margin: 0,
-              backgroundColor: forecast.isPlannedWeatherSuitable ? "#ecfdf5" : "#fffbeb",
+              backgroundColor: forecast.isPlannedWeatherSuitable ? "var(--success-bg)" : "#fffbeb",
               border: `1px solid ${forecast.isPlannedWeatherSuitable ? "#a7f3d0" : "#fde68a"}`,
               borderLeft: `5px solid ${forecast.isPlannedWeatherSuitable ? "var(--success)" : "var(--warning)"}`,
             }}
@@ -420,7 +421,7 @@ function RiskDashboard({ tripId, trip, destination, user, onNavigate }) {
                 </p>
 
                 {forecast.unsuitableReasons && forecast.unsuitableReasons.length > 0 && (
-                  <ul style={{ margin: "10px 0 0 20px", fontSize: "0.86rem", color: "#92400e" }}>
+                  <ul style={{ margin: "10px 0 0 20px", fontSize: "0.86rem", color: "var(--text-secondary)" }}>
                     {forecast.unsuitableReasons.map((reason, idx) => (
                       <li key={idx}>{reason}</li>
                     ))}
@@ -431,7 +432,7 @@ function RiskDashboard({ tripId, trip, destination, user, onNavigate }) {
               <span
                 className="badge"
                 style={{
-                  backgroundColor: forecast.isPlannedWeatherSuitable ? "#d1fae5" : "#fef3c7",
+                  backgroundColor: forecast.isPlannedWeatherSuitable ? "var(--success-bg)" : "var(--warning-bg)",
                   color: forecast.isPlannedWeatherSuitable ? "#065f46" : "#92400e",
                   fontWeight: 700,
                   fontSize: "0.82rem",

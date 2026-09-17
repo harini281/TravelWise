@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { API_BASE_URL } from "./apiConfig";
+import DestinationExplorer from "./components/DestinationExplorer";
+import { Icon } from "./components/TravelWiseUI";
 import TravelWiseLogo from "./components/TravelWiseLogo";
 import LandingPage from "./components/LandingPage";
 import SignInPage from "./components/SignInPage";
@@ -20,6 +22,10 @@ import AdminDashboard from "./components/AdminDashboard";
 
 function App() {
   const [trip, setTrip] = useState(null);
+  const [trips, setTrips] = useState([]);
+  const [draftDestination, setDraftDestination] = useState(null);
+  const tripsRequest = useRef(null);
+  const selectedTripId = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const getInitialTab = () => {
@@ -102,6 +108,8 @@ function App() {
   };
 
   const handleLogout = () => {
+    tripsRequest.current?.abort();
+    setTrip(null); setTrips([]); selectedTripId.current = null; setError("");
     setUser(null);
     try {
       sessionStorage.removeItem("travelwise_user");
@@ -111,39 +119,41 @@ function App() {
     navigateTo("login");
   };
 
-  const loadUserTrips = async () => {
+  const loadUserTrips = useCallback(async () => {
+    tripsRequest.current?.abort();
+    if (!user?.token) { setTrip(null); setTrips([]); setLoading(false); return; }
+    const controller = new AbortController(); tripsRequest.current = controller;
     try {
-      setLoading(true);
-      setError("");
-      const headers = user?.token ? { Authorization: `Bearer ${user.token}` } : {};
-      const response = await fetch(`${API_BASE_URL}/api/Trips`, { headers });
-      if (!response.ok) throw new Error("Failed to load user trips.");
+      setLoading(true); setError("");
+      const response = await fetch(`${API_BASE_URL}/api/Trips`, { signal: controller.signal, headers: { Authorization: `Bearer ${user.token}` } });
+      if (!response.ok) throw new Error("Your trips could not be loaded. Please try again.");
       const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setTrip(data[0]);
-      } else {
-        setTrip(null);
-      }
+      if (controller.signal.aborted) return;
+      const list = Array.isArray(data) ? data : [];
+      setTrips(list);
+      const selected = list.find(t => t.id === selectedTripId.current) || list.find(t => !["COMPLETED", "CANCELLED"].includes(t.status)) || list[0] || null;
+      setTrip(selected); selectedTripId.current = selected?.id;
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadUserTrips();
+      if (err.name !== "AbortError") { setError(err.message); setTrip(null); setTrips([]); }
+    } finally { if (!controller.signal.aborted) setLoading(false); }
   }, [user?.token]);
+  useEffect(() => {
+    selectedTripId.current = null;
+    setTrip(null); setTrips([]);
+    loadUserTrips();
+    return () => tripsRequest.current?.abort();
+  }, [loadUserTrips]);
 
   // Fetch updated user profile on mount if token exists
   useEffect(() => {
     if (user?.token) {
+      const controller = new AbortController();
       fetch(`${API_BASE_URL}/api/Auth/profile`, {
-        headers: { Authorization: `Bearer ${user.token}` },
+        headers: { Authorization: `Bearer ${user.token}` }, signal: controller.signal,
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((profile) => {
-          if (profile) {
+          if (profile && !controller.signal.aborted) {
             setUser((prev) => {
               const updated = { ...prev, ...profile };
               try {
@@ -156,6 +166,7 @@ function App() {
           }
         })
         .catch(() => {});
+      return () => controller.abort();
     }
   }, [user?.token]);
 
@@ -163,28 +174,28 @@ function App() {
   const isReviewerOrAdmin = user?.role === "Reviewer" || user?.role === "Admin";
 
   const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "trip", label: "Trip Planning & Map", icon: "🗺️" },
-    { id: "budget", label: "Budget & Expenses", icon: "💳" },
-    { id: "activities", label: "Activities", icon: "🗓️" },
-    { id: "safety", label: "Safety & Risk", icon: "🛡️" },
-    { id: "readiness", label: "Travel Readiness", icon: "📋" },
-    { id: "ai_planner", label: "AI Trip Planner", icon: "🤖" },
-    { id: "profile", label: "Profile & Preferences", icon: "👤" },
+    { id: "dashboard", label: isAdmin ? "Admin workspace" : "Your journey", icon: "dashboard" },
+    { id: "explore", label: "Explore destinations", icon: "compass" },
+    { id: "trip", label: "Trip Planning & Map", icon: "compass" },
+    { id: "budget", label: "Budget & Expenses", icon: "budget" },
+    { id: "activities", label: "Activities", icon: "activities" },
+    { id: "safety", label: "Safety & Risk", icon: "safety" },
+    { id: "readiness", label: "Travel Readiness", icon: "activities" },
+    { id: "ai_planner", label: "AI Trip Planner", icon: "compass" },
+    { id: "profile", label: "Profile & Preferences", icon: "profile" },
   ];
 
   if (isReviewerOrAdmin) {
-    navItems.push({ id: "review", label: "Workflow Review", icon: "⚖️" });
+    navItems.push({ id: "review", label: "Workflow Review", icon: "safety" });
   }
 
-  if (isAdmin) {
-    navItems.push({ id: "admin", label: "Admin Workspace", icon: "🛡️" });
-  }
 
   const getPageTitle = () => {
     switch (activeTab) {
       case "dashboard":
-        return "Dashboard Overview";
+        return isAdmin ? "Admin workspace" : "Your journey";
+      case "explore":
+        return "Explore destinations";
       case "trip":
         return "Trip Planning & GIS Route";
       case "budget":
@@ -212,7 +223,8 @@ function App() {
   if (currentRoute === "landing") {
     return (
       <LandingPage
-        onGetStarted={() => navigateTo("register")}
+        onGetStarted={() => { if (user) { navigateTo("dashboard"); setActiveTab("trip"); } else navigateTo("register"); }}
+        onPlanDestination={place => { setDraftDestination(place); if (user) { navigateTo("dashboard"); setActiveTab("trip"); } else navigateTo("register"); }}
         onSignIn={() => navigateTo("login")}
         onExploreApp={() => {
           if (user) {
@@ -324,7 +336,7 @@ function App() {
                 setSidebarOpen(false);
               }}
             >
-              <span className="nav-item-icon">{item.icon}</span>
+              <span className="nav-item-icon"><Icon name={item.icon}/></span>
               <span>{item.label}</span>
             </button>
           ))}
@@ -387,25 +399,9 @@ function App() {
             <span style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-primary)" }}>
               {getPageTitle()}
             </span>
-            {trip ? (
-              <span
-                className="header-trip-badge"
-                style={{ cursor: "pointer" }}
-                onClick={() => setActiveTab("trip")}
-                title="Click to view road route and manage trip"
-              >
-                {trip.startingPlace} ➔ {trip.destination}
-              </span>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => setActiveTab("trip")}
-                style={{ fontSize: "0.8rem", padding: "4px 10px" }}
-              >
-                ➕ Plan Trip
-              </button>
-            )}
+            {trips.length > 0 && <select className="tw-trip-select" aria-label="Selected trip" value={trip?.id || ""} onChange={e => { const selected = trips.find(t => t.id === Number(e.target.value)); setTrip(selected); selectedTripId.current = selected?.id; }}>
+              {trips.map(t => <option key={t.id} value={t.id}>{t.startingPlace} → {t.destination} · {t.startDate?.slice(0,10)}</option>)}
+            </select>}
           </div>
 
           <div className="header-user-section" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -441,12 +437,12 @@ function App() {
                 }
               }}
             />
-          ) : loading ? (
+          ) : (activeTab === "admin" || (isAdmin && activeTab === "dashboard")) && isAdmin ? <AdminDashboard user={user}/> : activeTab === "explore" ? <DestinationExplorer onPlan={place => { setDraftDestination(place); setActiveTab("trip"); }}/> : loading ? (
             <div style={{ textAlign: "center", padding: "80px 0" }}>
               <div style={{ fontSize: "2.4rem", marginBottom: "12px" }}>✈️</div>
               <h3 style={{ color: "var(--text-primary)", fontWeight: "600" }}>Loading TravelWise...</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
-                Connecting to ASP.NET Core gateway and database context...
+                Bringing your saved journeys together…
               </p>
             </div>
           ) : error ? (
@@ -476,13 +472,16 @@ function App() {
                 <TripManager
                   user={user}
                   currentTrip={trip}
-                  onSelectTrip={(selected) => setTrip(selected)}
+                  draftDestination={draftDestination}
+                  onConsumeDestination={() => setDraftDestination(null)}
+                  onSelectTrip={(selected) => { setTrip(selected); selectedTripId.current = selected?.id; }}
                   onRefreshTrips={loadUserTrips}
                 />
               )}
 
               {activeTab === "budget" && (
                 <ExpenseManager
+                  key={trip?.id || "empty"}
                   tripId={trip?.id}
                   trip={trip}
                   user={user}
@@ -492,6 +491,7 @@ function App() {
 
               {activeTab === "activities" && (
                 <ActivityManager
+                  key={trip?.id || "empty"}
                   tripId={trip?.id}
                   trip={trip}
                   user={user}
@@ -501,6 +501,7 @@ function App() {
 
               {activeTab === "safety" && (
                 <RiskDashboard
+                  key={trip?.id || "empty"}
                   tripId={trip?.id}
                   trip={trip}
                   destination={trip?.destination}
@@ -511,6 +512,7 @@ function App() {
 
               {activeTab === "readiness" && (
                 <ReadinessDashboard
+                  key={trip?.id || "empty"}
                   tripId={trip?.id}
                   trip={trip}
                   user={user}
@@ -520,6 +522,7 @@ function App() {
 
               {activeTab === "ai_planner" && (
                 <WorkflowDashboard
+                  key={trip?.id || "empty"}
                   tripId={trip?.id}
                   trip={trip}
                   user={user}
@@ -553,6 +556,7 @@ function App() {
                     As an authorized <strong>{user.role}</strong>, you have access to Human-in-the-Loop decision controls over AI-generated plans.
                   </p>
                   <WorkflowDashboard
+                  key={trip?.id || "empty"}
                     tripId={trip?.id}
                     trip={trip}
                     user={user}

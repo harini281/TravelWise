@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useState } from "react";
 import TravelWiseLogo from "./TravelWiseLogo";
 import { API_BASE_URL } from "../apiConfig";
@@ -102,7 +103,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
       }}
     >
       {/* Top Header */}
-      <header style={{ padding: "20px 32px", borderBottom: "1px solid var(--border-color)", backgroundColor: "#ffffff" }}>
+      <header style={{ padding: "20px 32px", borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--bg-surface)" }}>
         <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <TravelWiseLogo size={28} />
           <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 500 }}>
@@ -115,7 +116,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
       <main style={{ maxWidth: "780px", width: "100%", margin: "32px auto", padding: "0 20px" }}>
         <div
           style={{
-            backgroundColor: "#ffffff",
+            backgroundColor: "var(--bg-surface)",
             borderRadius: "var(--radius-lg)",
             border: "1px solid var(--border-color)",
             boxShadow: "var(--shadow-lg)",
@@ -207,9 +208,9 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
           {error && (
             <div
               style={{
-                backgroundColor: "#FEF2F2",
+                backgroundColor: "var(--bg-surface)",
                 border: "1px solid #FCA5A5",
-                color: "#991B1B",
+                color: "var(--text-secondary)",
                 borderRadius: "8px",
                 padding: "12px 14px",
                 fontSize: "0.88rem",
@@ -223,7 +224,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
           {/* STEP 1: Travel Style */}
           {step === 1 && (
             <div>
-              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F2B48", marginBottom: "16px" }}>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "16px" }}>
                 What type of traveller are you?
               </h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
@@ -249,10 +250,10 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                           <span style={{ color: "#0D9488", fontWeight: "bold", fontSize: "1.1rem" }}>✓</span>
                         )}
                       </div>
-                      <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "#0F2B48", margin: "0 0 4px" }}>
+                      <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-secondary)", margin: "0 0 4px" }}>
                         {item.label}
                       </h4>
-                      <p style={{ fontSize: "0.82rem", color: "#64748B", margin: 0, lineHeight: 1.4 }}>
+                      <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>
                         {item.desc}
                       </p>
                     </div>
@@ -265,10 +266,10 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
           {/* STEP 2: Interests */}
           {step === 2 && (
             <div>
-              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F2B48", marginBottom: "6px" }}>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "6px" }}>
                 What do you love doing while travelling?
               </h3>
-              <p style={{ color: "#64748B", fontSize: "0.88rem", marginBottom: "18px" }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem", marginBottom: "18px" }}>
                 Select all that apply. We'll use these to recommend attractions and activities.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "10px" }}>
@@ -304,7 +305,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
           {/* STEP 3: Budget Style */}
           {step === 3 && (
             <div>
-              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F2B48", marginBottom: "16px" }}>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "16px" }}>
                 What's your usual travel budget style?
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -328,10 +329,10 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                     >
                       <span style={{ fontSize: "1.8rem" }}>{item.icon}</span>
                       <div style={{ flex: 1 }}>
-                        <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "#0F2B48", margin: "0 0 2px" }}>
+                        <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-secondary)", margin: "0 0 2px" }}>
                           {item.label}
                         </h4>
-                        <p style={{ fontSize: "0.85rem", color: "#64748B", margin: 0 }}>{item.desc}</p>
+                        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0 }}>{item.desc}</p>
                       </div>
                       {selected && <span style={{ color: "#0D9488", fontWeight: "bold", fontSize: "1.2rem" }}>✓</span>}
                     </div>
@@ -345,7 +346,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
           {step === 4 && (
             <div>
               <div style={{ marginBottom: "24px" }}>
-                <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F2B48", marginBottom: "12px" }}>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "12px" }}>
                   Preferred Activity Pace
                 </h3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
@@ -368,8 +369,8 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                           textAlign: "center",
                         }}
                       >
-                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#0F2B48" }}>{p.label}</div>
-                        <div style={{ fontSize: "0.78rem", color: "#64748B", marginTop: "2px" }}>{p.desc}</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-secondary)" }}>{p.label}</div>
+                        <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: "2px" }}>{p.desc}</div>
                       </div>
                     );
                   })}
@@ -377,7 +378,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
               </div>
 
               <div>
-                <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F2B48", marginBottom: "12px" }}>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "12px" }}>
                   Preferred Transportation
                 </h3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
@@ -405,7 +406,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                         }}
                       >
                         <span>{t.icon}</span>
-                        <span style={{ fontWeight: sel ? 700 : 500, fontSize: "0.9rem", color: "#0F2B48" }}>
+                        <span style={{ fontWeight: sel ? 700 : 500, fontSize: "0.9rem", color: "var(--text-secondary)" }}>
                           {t.label}
                         </span>
                       </div>
@@ -434,7 +435,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#64748B",
+                  color: "var(--text-secondary)",
                   fontSize: "0.9rem",
                   cursor: "pointer",
                 }}
@@ -446,9 +447,9 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                 type="button"
                 onClick={() => setStep(step - 1)}
                 style={{
-                  backgroundColor: "#F1F5F9",
+                  backgroundColor: "var(--bg-surface)",
                   border: "1px solid #CBD5E1",
-                  color: "#334155",
+                  color: "var(--text-secondary)",
                   padding: "10px 20px",
                   borderRadius: "8px",
                   fontWeight: 600,

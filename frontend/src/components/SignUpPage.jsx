@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useState } from "react";
 import TravelWiseLogo from "./TravelWiseLogo";
 import { API_BASE_URL } from "../apiConfig";
@@ -70,7 +71,7 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
   };
 
   return (
-    <div
+    <div className="tw-auth-layout"
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -83,7 +84,7 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
         style={{
           flex: "1 1 45%",
           position: "relative",
-          background: `linear-gradient(180deg, rgba(9, 43, 58, 0.75) 0%, rgba(6, 36, 49, 0.92) 100%), url('https://images.unsplash.com/photo-1588598198321-9735fd524a25?auto=format&fit=crop&w=1400&q=85') center/cover no-repeat`,
+          background: `linear-gradient(180deg, rgba(9, 43, 58, 0.75) 0%, rgba(6, 36, 49, 0.92) 100%)`,
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
@@ -115,7 +116,7 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
           </button>
         </div>
 
-        <div style={{ maxWidth: "480px", my: "auto" }}>
+        <div style={{ maxWidth: "480px", marginBlock: "auto" }}>
           <p
             style={{
               color: "var(--teal-border)",
@@ -176,7 +177,7 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
           style={{
             width: "100%",
             maxWidth: "500px",
-            backgroundColor: "#ffffff",
+            backgroundColor: "var(--bg-surface)",
             padding: "clamp(28px, 4vw, 40px)",
             borderRadius: "var(--radius-lg)",
             border: "1px solid var(--border-color)",

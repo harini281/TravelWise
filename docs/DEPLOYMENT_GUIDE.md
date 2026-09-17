@@ -291,3 +291,49 @@ sudo -u postgres psql -d travelwise -c "SELECT count(*) FROM \"Trips\";"
 sudo systemctl status travelwise-api
 sudo systemctl status travelwise-ai
 ```
+
+## Premium dashboard and destination discovery
+
+The existing React app now uses a shared dark TravelWise design system. Its selected trip comes from the authenticated `GET /api/Trips` response. `GET /api/Dashboard/trip/{id}` returns a read-only, owner-checked snapshot of expenses, activities, required readiness items, and the latest saved weather, risk and workflow records. Viewing the dashboard does not create assessments or budgets. Missing records are displayed as unavailable or not started.
+
+The planning indicator counts five explicit steps: route/dates, a positive budget, a saved itinerary activity, all required readiness items completed, and an approved workflow. It is a checklist, not a prediction of travel safety. The recommendations section highlights saved itinerary activities matching saved interests. It does not fabricate attractions or AI output. Existing Python planning, deterministic validation and review endpoints remain in place.
+
+The budget snapshot uses the existing budget formula: allocated amount minus recorded expenses, remaining food allowance and return reserve. It does not reserve all possible future accommodation/activity costs. All current monetary displays use the existing LKR contract.
+
+Destination discovery uses these ASP.NET endpoints:
+
+- `GET /api/Destinations/search?query=...`: searches geographic places through Open-Meteo/GeoNames and returns provider coordinates; failures return 503, not invented results.
+- `GET /api/Destinations/photo?query=...`: searches Unsplash on the server. Set `UNSPLASH_ACCESS_KEY` only in the API host's secret/environment settings. Without a key, without results, or on provider failure, the UI uses its designed gradient fallback. Do not add the key to React, Flutter, source control or a `VITE_` variable.
+
+Photographs use the provider's image URLs and photographer/Unsplash attribution links. Place search is cached for 30 minutes; photography for one hour. Both routes share a limit of 30 requests per minute per remote IP. Hosts behind a reverse proxy should configure trusted forwarding according to their own network; arbitrary forwarded headers are not trusted by this application.
+
+References: [Unsplash API documentation](https://unsplash.com/documentation), [Unsplash API guidelines](https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines), [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api).
+
+### Validation
+
+From the existing repository:
+
+```bash
+npm --prefix frontend ci
+npm --prefix frontend run build
+cd frontend
+npx playwright install chromium
+npm run test:e2e
+```
+
+Browser tests use intercepted test-only API responses. They exercise the UI contract without writing to an external database. They do not replace integration testing against an approved staging API. Backend tests use EF's in-memory provider:
+
+```bash
+dotnet test backend/TravelWise.Tests/TravelWise.Tests.csproj
+cd mobile
+flutter analyze
+flutter test
+```
+
+The Flutter client now waits for sign-in, selects actual returned trips and uses the same ASP.NET snapshot. It also supports destination search and basic trip creation. Its existing activity, expense, readiness, risk and workflow pages receive the selected trip ID and session authentication.
+
+### Private deployment boundary
+
+No hosting service, database, user account, secret or external API configuration is changed by these source changes. The repository does not contain a configured private hosting target or a verified deployed API URL. A usable private deployment requires an approved host for the existing frontend and ASP.NET API, a reachable API URL, and configured authentication/database services. Configure `VITE_API_BASE_URL` for that API and explicitly allow the private frontend origin through `CORS_ALLOWED_ORIGINS` (comma separated) or `Cors:AllowedOrigins`. Enforce access control at the hosting layer before exposing the frontend; a hidden URL alone is not private hosting. Preserve the current repository and applications when deploying.
+
+JWT signing and validation now share the resolved `JWT_SECRET` / `JWT_ISSUER` / `JWT_AUDIENCE` settings. The code no longer supplies a signing-key fallback. Supply an independently generated signing key through the approved host's secret settings before deployment; never use sample development configuration for a hosted API.

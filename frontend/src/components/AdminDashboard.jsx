@@ -1,4 +1,6 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useState, useEffect } from "react";
+import { ErrorState, LoadingState, SectionCard, StatCard, StatusBadge } from "./TravelWiseUI";
 import { API_BASE_URL } from "../apiConfig";
 
 function AdminDashboard({ user }) {
@@ -6,6 +8,8 @@ function AdminDashboard({ user }) {
 
   // Overview / Stats State
   const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState("");
 
   // Users State
   const [users, setUsers] = useState([]);
@@ -46,15 +50,13 @@ function AdminDashboard({ user }) {
 
   // 1. Fetch Stats
   const fetchStats = async () => {
+    setStatsLoading(true); setStatsError(""); setStats(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/Admin/stats`, { headers: authHeaders });
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
-    } catch (e) {
-      console.warn("Failed to load admin stats:", e);
-    }
+      if (!res.ok) throw new Error("Admin records are unavailable. Retry to see current information.");
+      setStats(await res.json());
+    } catch (error) { setStatsError(error.message); }
+    finally { setStatsLoading(false); }
   };
 
   // 2. Fetch Users
@@ -130,9 +132,6 @@ function AdminDashboard({ user }) {
     }
   };
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
 
   useEffect(() => {
     if (activeTab === "overview") {
@@ -275,7 +274,7 @@ function AdminDashboard({ user }) {
       case "REVISION_REQUIRED":
         return <span className="badge badge-warning">↺ CHANGES REQUESTED</span>;
       default:
-        return <span className="badge badge-info">PENDING</span>;
+        return <span className="badge badge-info">{status || "Not available"}</span>;
     }
   };
 
@@ -371,99 +370,24 @@ function AdminDashboard({ user }) {
       {/* ======================================================== */}
       {/* TAB 1: OVERVIEW & TELEMETRY                              */}
       {/* ======================================================== */}
-      {activeTab === "overview" && (
-        <div>
-          {/* Key Metrics Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "28px" }}>
-            <div className="tw-card" style={{ margin: 0, padding: "20px" }}>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>
-                Total Accounts
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--ink)", marginTop: "4px" }}>
-                {stats?.totalUsers ?? "—"}
-              </div>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "2px" }}>
-                {stats?.activeUsers ?? 0} active • {stats?.travellerUsers ?? 0} travellers
-              </div>
-            </div>
-
-            <div className="tw-card" style={{ margin: 0, padding: "20px" }}>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>
-                Registered Trips
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--teal)", marginTop: "4px" }}>
-                {stats?.totalTrips ?? "—"}
-              </div>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "2px" }}>
-                Total Allocated: LKR {stats?.totalAllocatedBudget ? Number(stats.totalAllocatedBudget).toLocaleString() : 0}
-              </div>
-            </div>
-
-            <div className="tw-card" style={{ margin: 0, padding: "20px" }}>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>
-                Planned Excursions
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--ink)", marginTop: "4px" }}>
-                {stats?.totalActivities ?? "—"}
-              </div>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "2px" }}>
-                Curated & custom activities
-              </div>
-            </div>
-
-            <div className="tw-card" style={{ margin: 0, padding: "20px" }}>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>
-                AI Workflows
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 800, color: (stats?.pendingApprovals ?? 0) > 0 ? "var(--warning)" : "var(--success)", marginTop: "4px" }}>
-                {stats?.totalWorkflows ?? "—"}
-              </div>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "2px" }}>
-                {stats?.pendingApprovals ?? 0} awaiting governance review
-              </div>
-            </div>
+      {activeTab === "overview" && <div className="tw-admin">
+        {statsLoading && <LoadingState label="Loading the operational overview…"/>}
+        {statsError && <ErrorState message={statsError} onRetry={fetchStats}/>}
+        {stats && <>
+          <div className="tw-stat-grid">
+            <StatCard label="Pending traveller decisions" value={stats.pendingTravellerDecisions} detail="Plans returned by a reviewer with changes requested." onClick={() => setActiveTab("reviews")}/>
+            <StatCard label="Pending admin verifications" value={stats.pendingApprovals} detail="Validated plans awaiting approval." onClick={() => setActiveTab("reviews")}/>
+            <StatCard label="Active trips" value={stats.activeTrips} detail={`${stats.totalTrips} trips registered across all accounts.`} onClick={() => setActiveTab("trips")}/>
+            <StatCard label="Users" value={stats.totalUsers} detail={`${stats.activeUsers} active accounts · ${stats.travellerUsers} travellers`} onClick={() => setActiveTab("users")}/>
+            <StatCard label="Workflow status" value={stats.totalWorkflows} detail="Persisted planning workflows across the service." onClick={() => setActiveTab("reviews")}/>
+            <StatCard label="System health" value={stats.databaseReachable ? "Database reachable" : "Not available"} detail={`Last successful overview read: ${new Date(stats.capturedAt).toLocaleString()}. AI and weather availability are checked when requested.`}/>
           </div>
-
-          {/* System Status & Architecture Card */}
-          <div className="tw-card" style={{ padding: "24px" }}>
-            <div className="tw-card-header">
-              <h3 className="tw-card-title">
-                <span>🛡️</span> Architecture & Security Health
-              </h3>
-              <span className="badge badge-success">OPERATIONAL</span>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
-              <div style={{ backgroundColor: "var(--bg-surface-alt)", padding: "16px", borderRadius: "var(--radius-md)" }}>
-                <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                  PostgreSQL Persistence Context
-                </div>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.5" }}>
-                  Active database connection with strict foreign keys, transactional expense reconciliations, and audit log tables.
-                </p>
-              </div>
-
-              <div style={{ backgroundColor: "var(--bg-surface-alt)", padding: "16px", borderRadius: "var(--radius-md)" }}>
-                <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                  Deterministic Safety & Open-Meteo
-                </div>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.5" }}>
-                  Direct API calls to Open-Meteo providing weather telemetry, temperature/wind analysis, and alternative date calculations.
-                </p>
-              </div>
-
-              <div style={{ backgroundColor: "var(--bg-surface-alt)", padding: "16px", borderRadius: "var(--radius-md)" }}>
-                <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                  Human-in-the-Loop Governance
-                </div>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.5" }}>
-                  Separation of privileges: Travellers submit plans, while Reviewers and Administrators evaluate and approve activation.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          <SectionCard eyebrow="Planning operations" title="Workflow status"><div className="tw-admin-statuses">{stats.workflowStatuses?.length ? stats.workflowStatuses.map(row => <StatusBadge key={row.status}>{`${row.status.replaceAll("_", " ")} · ${row.count}`}</StatusBadge>) : <p>No workflows recorded yet.</p>}</div></SectionCard>
+          <SectionCard eyebrow="Recent decisions" title="Audit history" action={<button className="tw-text-button" onClick={() => setActiveTab("audit")}>View history →</button>}>
+            {stats.latestAudit?.length ? <ul className="tw-audit-list">{stats.latestAudit.map(log => <li key={log.id}><StatusBadge>{log.eventType}</StatusBadge><p>{log.message}</p><small>{log.actor} · {new Date(log.createdAt).toLocaleString()}</small></li>)}</ul> : <p>No audit events recorded yet.</p>}
+          </SectionCard>
+        </>}
+      </div>}
 
       {/* ======================================================== */}
       {/* TAB 2: USER REGISTRY                                     */}
@@ -604,7 +528,7 @@ function AdminDashboard({ user }) {
                                   style={{
                                     fontSize: "0.78rem",
                                     padding: "4px 10px",
-                                    backgroundColor: u.isActive ? "#fee2e2" : "#dcfce7",
+                                    backgroundColor: u.isActive ? "var(--danger-bg)" : "var(--success-bg)",
                                     color: u.isActive ? "#b91c1c" : "#15803d",
                                     border: u.isActive ? "1px solid #fca5a5" : "1px solid #86efac",
                                   }}

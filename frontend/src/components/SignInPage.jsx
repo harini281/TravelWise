@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useState } from "react";
 import TravelWiseLogo from "./TravelWiseLogo";
 import { API_BASE_URL } from "../apiConfig";
@@ -9,7 +10,6 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showQuickFill, setShowQuickFill] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,14 +58,9 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
     }
   };
 
-  const handleQuickFill = (u, p) => {
-    setIdentifier(u);
-    setPassword(p);
-    setError("");
-  };
 
   return (
-    <div
+    <div className="tw-auth-layout"
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -78,7 +73,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
         style={{
           flex: "1 1 50%",
           position: "relative",
-          background: `linear-gradient(180deg, rgba(9, 43, 58, 0.75) 0%, rgba(6, 36, 49, 0.92) 100%), url('https://images.unsplash.com/photo-1586613834526-6f8b5c7d0ca5?auto=format&fit=crop&w=1400&q=85') center/cover no-repeat`,
+          background: `linear-gradient(180deg, rgba(9, 43, 58, 0.75) 0%, rgba(6, 36, 49, 0.92) 100%)`,
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
@@ -111,7 +106,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
           </button>
         </div>
 
-        <div style={{ maxWidth: "480px", my: "auto" }}>
+        <div style={{ maxWidth: "480px", marginBlock: "auto" }}>
           <p
             style={{
               color: "var(--teal-border)",
@@ -194,7 +189,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
           style={{
             width: "100%",
             maxWidth: "460px",
-            backgroundColor: "#ffffff",
+            backgroundColor: "var(--bg-surface)",
             padding: "clamp(28px, 4vw, 44px)",
             borderRadius: "var(--radius-lg)",
             border: "1px solid var(--border-color)",
@@ -279,7 +274,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                   padding: "12px 14px",
                   borderRadius: "var(--radius-md)",
                   border: "1px solid var(--border-color)",
-                  backgroundColor: "#ffffff",
+                  backgroundColor: "var(--bg-surface)",
                   fontSize: "0.95rem",
                   color: "var(--text-primary)",
                   outline: "none",
@@ -330,7 +325,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                     padding: "12px 42px 12px 14px",
                     borderRadius: "var(--radius-md)",
                     border: "1px solid var(--border-color)",
-                    backgroundColor: "#ffffff",
+                    backgroundColor: "var(--bg-surface)",
                     fontSize: "0.95rem",
                     color: "var(--text-primary)",
                     outline: "none",
@@ -391,80 +386,6 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
               {loading ? "Signing in..." : "Sign In to TravelWise →"}
             </button>
           </form>
-
-          {/* Quick Fill Testing Assist */}
-          <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid var(--border-light)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Testing Accounts:</span>
-              <button
-                type="button"
-                onClick={() => setShowQuickFill(!showQuickFill)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--teal)",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {showQuickFill ? "Hide Quick Fill ▲" : "Quick Fill ▼"}
-              </button>
-            </div>
-
-            {showQuickFill && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginTop: "10px" }}>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill("traveller", "Traveller123!")}
-                  style={{
-                    padding: "8px 6px",
-                    backgroundColor: "var(--bg-surface-alt)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "var(--radius-sm)",
-                    fontSize: "0.78rem",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                    cursor: "pointer",
-                  }}
-                >
-                  🎒 Traveller
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill("reviewer", "Reviewer123!")}
-                  style={{
-                    padding: "8px 6px",
-                    backgroundColor: "var(--bg-surface-alt)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "var(--radius-sm)",
-                    fontSize: "0.78rem",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                    cursor: "pointer",
-                  }}
-                >
-                  🛡️ Reviewer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill("admin", "Admin123!")}
-                  style={{
-                    padding: "8px 6px",
-                    backgroundColor: "var(--bg-surface-alt)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "var(--radius-sm)",
-                    fontSize: "0.78rem",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                    cursor: "pointer",
-                  }}
-                >
-                  ⚡ Admin
-                </button>
-              </div>
-            )}
-          </div>
 
           {/* Create Account Link */}
           <div style={{ textAlign: "center", marginTop: "24px" }}>

@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useState, useEffect } from "react";
 import TravelWiseLogo from "./TravelWiseLogo";
 import { API_BASE_URL } from "../apiConfig";
@@ -99,7 +100,7 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
       <main style={{ maxWidth: "480px", width: "100%", margin: "30px auto", padding: "0 24px" }}>
         <div
           style={{
-            backgroundColor: "#ffffff",
+            backgroundColor: "var(--bg-surface)",
             borderRadius: "var(--radius-lg)",
             border: "1px solid var(--border-color)",
             padding: "36px 32px",

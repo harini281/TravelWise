@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,6 +14,14 @@ var builder = WebApplication.CreateBuilder(args);
 // ---------------------------------------------------------
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
+builder.Services.AddRateLimiter(options => {
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("destinations", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "shared",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
+builder.Services.AddHttpClient("Destinations", client => client.Timeout = TimeSpan.FromSeconds(8));
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
@@ -22,13 +31,18 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET") ??
     builder.Configuration["Jwt:Key"] ??
-    "TravelWiseSuperSecretSecureKeyForUniversityVivaDemo2026!";
+    throw new InvalidOperationException("Configure JWT_SECRET or Jwt:Key before starting the API.");
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ??
     builder.Configuration["Jwt:Issuer"] ??
     "TravelWiseAPI";
 var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ??
     builder.Configuration["Jwt:Audience"] ??
     "TravelWiseClient";
+
+// Token generation and validation must use the same resolved configuration.
+builder.Configuration["Jwt:Key"] = jwtKey;
+builder.Configuration["Jwt:Issuer"] = jwtIssuer;
+builder.Configuration["Jwt:Audience"] = jwtAudience;
 
 builder.Services.AddAuthentication(options =>
 {
@@ -102,7 +116,8 @@ builder.Services.AddDbContext<TravelWiseDbContext>(options =>
 // CORS - allow frontend clients
 // ---------------------------------------------------------
 
-var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+var configuredOrigins = builder.Configuration["CORS_ALLOWED_ORIGINS"]?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries) ??
+    builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
     new[]
     {
         "http://localhost:5173",
@@ -117,7 +132,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("ReactFrontend", policy =>
     {
         policy
-            .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost" || new Uri(origin).Host == "127.0.0.1")
+            .WithOrigins(configuredOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -245,7 +260,9 @@ if (!app.Environment.IsDevelopment())
 
 
 // Allow React frontend to call ASP.NET API
+app.UseRouting();
 app.UseCors("ReactFrontend");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

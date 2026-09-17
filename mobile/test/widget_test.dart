@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/main.dart';
 
 void main() {
-  testWidgets('TravelWiseApp smoke test - verifies title and initial loading state', (WidgetTester tester) async {
+  testWidgets('TravelWise starts at sign in without loading a demonstration trip', (WidgetTester tester) async {
     await tester.pumpWidget(const TravelWiseApp());
 
     // Verify that the AppBar title 'TravelWise' is rendered
@@ -14,8 +14,9 @@ void main() {
     // Verify that the flight takeoff icon is in the header
     expect(find.byIcon(Icons.flight_takeoff), findsOneWidget);
 
-    // Verify that initial state shows loading indicator or scaffold
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Ella Adventure'), findsNothing);
   });
 
   test('Trip DTO JSON decoding test', () {

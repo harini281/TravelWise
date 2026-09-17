@@ -144,7 +144,7 @@ function TripMapView({
         style={{
           height,
           width: "100%",
-          backgroundColor: "#e2e8f0",
+          backgroundColor: "var(--bg-surface)",
           zIndex: 1,
         }}
       />

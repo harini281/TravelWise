@@ -1,10 +1,10 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../apiConfig";
 import TripMapView from "./TripMapView";
 import { geocodeLocation, fetchRoadRoute, calculateTransportRecommendations } from "../utils/mapAndRouteService";
-import { getRecommendedActivities } from "../utils/destinationRecommendations";
 
-function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
+function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips, draftDestination, onConsumeDestination }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
@@ -63,7 +63,6 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
   const [geocodingLoading, setGeocodingLoading] = useState(false);
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
-  const [activityFeedback, setActivityFeedback] = useState("");
 
   // Load Traveller's trips from PostgreSQL
   const loadTrips = async () => {
@@ -77,7 +76,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
       setTrips(tripList);
       return tripList;
     } catch (err) {
-      console.error("Failed to load trips:", err);
+      setFormError(err.message);
       return [];
     } finally {
       setLoading(false);
@@ -452,9 +451,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
       return;
     }
 
-    const tripDays = Math.max(1, Math.ceil((new Date(returnDate) - new Date(startDate)) / 86400000));
-    const calculatedReturnReserve = Number(returnBudgetReserve) || Math.round(Number(budgetAmount) * 0.2);
-    const calculatedFoodBudget = Number(foodBudget) || Math.round(Math.max(0, Number(budgetAmount) - calculatedReturnReserve) * 0.25);
+    const calculatedReturnReserve = Number(returnBudgetReserve) || 0;
+    const calculatedFoodBudget = Number(foodBudget) || 0;
 
     const payload = {
       startingPlace: startingPlace.trim(),
@@ -471,18 +469,18 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
       travelScope,
       passportRequired: travelScope === "International",
       travelInsuranceRequired: travelScope === "International",
-      readinessChecksComplete: travelScope === "Local" ? true : readinessChecksComplete,
+      readinessChecksComplete,
       baggagePlan: travelScope === "International" ? "Passport-safe baggage plan" : "Standard baggage plan",
       returnTransport: returnTransport || selectedTransport,
       status,
       selectedTransport,
-      estimatedDistanceKm: distanceKm,
-      estimatedDurationMinutes: durationMins,
-      estimatedTransportCost: estimatedCost,
-      startLatitude: startCoords[0],
-      startLongitude: startCoords[1],
-      destinationLatitude: destCoords[0],
-      destinationLongitude: destCoords[1],
+      estimatedDistanceKm: routeGeoJson ? distanceKm : null,
+      estimatedDurationMinutes: routeGeoJson ? durationMins : null,
+      estimatedTransportCost: routeGeoJson ? estimatedCost : null,
+      startLatitude: startCoords?.[0] ?? null,
+      startLongitude: startCoords?.[1] ?? null,
+      destinationLatitude: destCoords?.[0] ?? null,
+      destinationLongitude: destCoords?.[1] ?? null,
       routeGeometryJson: routeGeoJson,
     };
 
@@ -581,58 +579,14 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
     setFormSuccess("Update the return date and transport, then save your return plan.");
   };
 
-  const handleAddCuratedActivity = async (activity) => {
-    if (!currentTrip?.id) {
-      setActivityFeedback("Please select an active trip first.");
-      return;
-    }
-
-    try {
-      setActivityFeedback(`Adding "${activity.name}" to trip itinerary...`);
-
-      const tripStart = new Date(currentTrip.startDate);
-      const scheduledStart = new Date(tripStart);
-      scheduledStart.setHours(10, 0, 0, 0);
-
-      const scheduledEnd = new Date(scheduledStart);
-      scheduledEnd.setMinutes(scheduledEnd.getMinutes() + (activity.durationMinutes || 90));
-
-      const payload = {
-        tripId: currentTrip.id,
-        name: activity.name,
-        category: activity.category,
-        description: activity.description,
-        location: activity.location,
-        estimatedCost: activity.estimatedCost,
-        durationMinutes: activity.durationMinutes,
-        scheduledStart: scheduledStart.toISOString(),
-        scheduledEnd: scheduledEnd.toISOString(),
-      };
-
-      const res = await fetch(`${API_BASE_URL}/api/Activities`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Could not add activity to trip.");
-      }
-
-      setActivityFeedback(`✓ Successfully added "${activity.name}" to your trip itinerary!`);
-      setTimeout(() => setActivityFeedback(""), 4000);
-    } catch (err) {
-      setActivityFeedback(`Notice: ${err.message}`);
-      setTimeout(() => setActivityFeedback(""), 5000);
-    }
-  };
-
-  const curatedActivities = getRecommendedActivities(
-    currentTrip?.destination || destination,
-    user?.interests,
-    weatherAdvisory?.weatherCondition
-  );
+  useEffect(() => {
+    if (!draftDestination) return;
+    setEditingTripId(null);
+    setDestination(draftDestination.name + (draftDestination.country ? `, ${draftDestination.country}` : ""));
+    setDestCoords(draftDestination.latitude != null ? [draftDestination.latitude, draftDestination.longitude] : null);
+    setShowWizard(true);
+    onConsumeDestination?.();
+  }, [draftDestination]);
 
   // Combine packing recommendations from planning and advisory
   const effectivePackingList =
@@ -640,13 +594,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
       ? weatherPlanning.packingRecommendations
       : weatherAdvisory?.packingChecklist?.length > 0
       ? weatherAdvisory.packingChecklist
-      : [
-          "Lightweight cotton daywear",
-          "Sun protection (SPF 50+)",
-          "Comfortable walking shoes",
-          "Refillable water bottle",
-          "Compact rain poncho / umbrella",
-        ];
+      : [];
 
   const totalPackedCount = effectivePackingList.filter((item) => checkedPackingItems[item]).length;
 
@@ -720,8 +668,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
             {trips.map((t) => {
               const isSelected = currentTrip?.id === t.id;
               const isCompleted = t.status === "COMPLETED";
-              const startFmt = t.startDate ? new Date(t.startDate).toLocaleDateString() : "TBD";
-              const returnFmt = t.returnDate ? new Date(t.returnDate).toLocaleDateString() : "TBD";
+              const startFmt = t.startDate ? new Date(t.startDate).toLocaleDateString(undefined, { timeZone: "UTC" }) : "TBD";
+              const returnFmt = t.returnDate ? new Date(t.returnDate).toLocaleDateString(undefined, { timeZone: "UTC" }) : "TBD";
 
               return (
                 <div
@@ -768,7 +716,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                         </div>
                       )}
                       {isCompleted && (
-                        <div style={{ marginTop: "6px", color: "#15803d", fontWeight: 700, fontSize: "0.8rem" }}>
+                        <div style={{ marginTop: "6px", color: "var(--text-secondary)", fontWeight: 700, fontSize: "0.8rem" }}>
                           🏆 Completed via {t.completionMethod === "LOCATION" ? "📍 GPS Arrival" : "🏁 Manual Confirmation"}
                         </div>
                       )}
@@ -842,13 +790,13 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
           </div>
 
           {formError && (
-            <div style={{ padding: "10px 14px", backgroundColor: "#fee2e2", borderLeft: "4px solid #ef4444", color: "#b91c1c", marginBottom: "16px", borderRadius: "6px", fontSize: "0.88rem" }}>
+            <div style={{ padding: "10px 14px", backgroundColor: "var(--danger-bg)", borderLeft: "4px solid #ef4444", color: "var(--text-secondary)", marginBottom: "16px", borderRadius: "6px", fontSize: "0.88rem" }}>
               {formError}
             </div>
           )}
 
           {formSuccess && (
-            <div style={{ padding: "10px 14px", backgroundColor: "#dcfce7", borderLeft: "4px solid #22c55e", color: "#15803d", marginBottom: "16px", borderRadius: "6px", fontSize: "0.88rem" }}>
+            <div style={{ padding: "10px 14px", backgroundColor: "var(--success-bg)", borderLeft: "4px solid #22c55e", color: "var(--text-secondary)", marginBottom: "16px", borderRadius: "6px", fontSize: "0.88rem" }}>
               {formSuccess}
             </div>
           )}
@@ -856,9 +804,9 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
           <form onSubmit={handleCreateOrUpdateTrip}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "16px" }}>
               <div>
-                <label className="auth-label">Starting Place</label>
+                <label className="auth-label" htmlFor="trip-starting-place">Starting Place</label>
                 <div style={{ display: "flex", gap: "6px" }}>
-                  <input
+                  <input id="trip-starting-place"
                     type="text"
                     className="auth-input"
                     value={startingPlace}
@@ -870,9 +818,9 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               </div>
 
               <div>
-                <label className="auth-label">Destination</label>
+                <label className="auth-label" htmlFor="trip-destination">Destination</label>
                 <div style={{ display: "flex", gap: "6px" }}>
-                  <input
+                  <input id="trip-destination"
                     type="text"
                     className="auth-input"
                     value={destination}
@@ -896,8 +844,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               </div>
 
               <div>
-                <label className="auth-label">Start Date</label>
-                <input
+                <label className="auth-label" htmlFor="trip-start-date">Start Date</label>
+                <input id="trip-start-date"
                   type="date"
                   className="auth-input"
                   value={startDate}
@@ -910,8 +858,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               </div>
 
               <div>
-                <label className="auth-label">Return Date</label>
-                <input
+                <label className="auth-label" htmlFor="trip-return-date">Return Date</label>
+                <input id="trip-return-date"
                   type="date"
                   className="auth-input"
                   value={returnDate}
@@ -924,8 +872,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               </div>
 
               <div>
-                <label className="auth-label">Total Budget (LKR)</label>
-                <input
+                <label className="auth-label" htmlFor="trip-total-budget-lkr">Total Budget (LKR)</label>
+                <input id="trip-total-budget-lkr"
                   type="number"
                   className="auth-input"
                   value={budgetAmount}
@@ -937,8 +885,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               </div>
 
               <div>
-                <label className="auth-label">Traveller Count</label>
-                <input
+                <label className="auth-label" htmlFor="trip-traveller-count">Traveller Count</label>
+                <input id="trip-traveller-count"
                   type="number"
                   className="auth-input"
                   value={travellerCount}
@@ -954,8 +902,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               </div>
 
               <div>
-                <label className="auth-label">Trip Style / Type</label>
-                <select
+                <label className="auth-label" htmlFor="trip-trip-style-type">Trip Style / Type</label>
+                <select id="trip-trip-style-type"
                   className="auth-input"
                   value={tripType}
                   onChange={(e) => {
@@ -974,30 +922,30 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               </div>
 
               <div>
-                <label className="auth-label">Trip Scope</label>
-                <select className="auth-input" value={travelScope} onChange={(e) => setTravelScope(e.target.value)}>
+                <label className="auth-label" htmlFor="trip-trip-scope">Trip Scope</label>
+                <select id="trip-trip-scope" className="auth-input" value={travelScope} onChange={(e) => setTravelScope(e.target.value)}>
                   <option value="Local">Local</option>
                   <option value="International">International</option>
                 </select>
               </div>
 
               <div>
-                <label className="auth-label">Return Transport</label>
-                <input className="auth-input" value={returnTransport} onChange={(e) => setReturnTransport(e.target.value)} placeholder="e.g. Train, Bus, Flight" />
+                <label className="auth-label" htmlFor="trip-return-transport">Return Transport</label>
+                <input id="trip-return-transport" className="auth-input" value={returnTransport} onChange={(e) => setReturnTransport(e.target.value)} placeholder="e.g. Train, Bus, Flight" />
               </div>
 
               <div>
-                <label className="auth-label">Return Budget Reserve (LKR)</label>
-                <input type="number" className="auth-input" value={returnBudgetReserve} onChange={(e) => setReturnBudgetReserve(e.target.value)} min="0" step="1000" />
+                <label className="auth-label" htmlFor="trip-return-budget-reserve-lkr">Return Budget Reserve (LKR)</label>
+                <input id="trip-return-budget-reserve-lkr" type="number" className="auth-input" value={returnBudgetReserve} onChange={(e) => setReturnBudgetReserve(e.target.value)} min="0" step="1000" />
               </div>
 
               <div>
-                <label className="auth-label">Food Budget (LKR)</label>
-                <input type="number" className="auth-input" value={foodBudget} onChange={(e) => setFoodBudget(e.target.value)} min="0" step="500" />
+                <label className="auth-label" htmlFor="trip-food-budget-lkr">Food Budget (LKR)</label>
+                <input id="trip-food-budget-lkr" type="number" className="auth-input" value={foodBudget} onChange={(e) => setFoodBudget(e.target.value)} min="0" step="500" />
               </div>
 
               {travelScope === "International" && (
-                <div style={{ gridColumn: "1 / -1", display: "flex", flexWrap: "wrap", gap: "14px", padding: "12px", background: "#eff6ff", borderRadius: "8px" }}>
+                <div style={{ gridColumn: "1 / -1", display: "flex", flexWrap: "wrap", gap: "14px", padding: "12px", background: "var(--bg-surface)", borderRadius: "8px" }}>
                   <label><input type="checkbox" checked={passportReady} onChange={(e) => setPassportReady(e.target.checked)} /> Passport ready</label>
                   <label><input type="checkbox" checked={insuranceReady} onChange={(e) => setInsuranceReady(e.target.checked)} /> Travel insurance arranged</label>
                   <label><input type="checkbox" checked={readinessChecksComplete} onChange={(e) => setReadinessChecksComplete(e.target.checked)} /> Readiness checks complete</label>
@@ -1005,8 +953,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               )}
 
               <div>
-                <label className="auth-label">Status</label>
-                <select
+                <label className="auth-label" htmlFor="trip-status">Status</label>
+                <select id="trip-status"
                   className="auth-input"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
@@ -1157,7 +1105,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
             <div
               style={{
                 backgroundColor: currentTrip.status === "COMPLETED" ? "#f0fdf4" : "var(--bg-surface-alt)",
-                border: currentTrip.status === "COMPLETED" ? "1px solid #bbf7d0" : "1px solid var(--border-color)",
+                border: currentTrip.status === "COMPLETED" ? "1px solid var(--success-border)" : "1px solid var(--border-color)",
                 borderRadius: "var(--radius-md)",
                 padding: "16px",
                 marginBottom: "16px",
@@ -1173,7 +1121,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                   </h4>
                   <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
                     {currentTrip.status === "COMPLETED"
-                      ? `Trip reached ${currentTrip.destination} on ${new Date(currentTrip.completedAt || Date.now()).toLocaleString()} via ${
+                      ? `Trip reached ${currentTrip.destination} on ${currentTrip.completedAt ? new Date(currentTrip.completedAt).toLocaleString() : "date not recorded"} via ${
                           currentTrip.completionMethod === "LOCATION" ? "Live Location Arrival Detection (within 500m)" : "Manual Traveller Confirmation"
                         }.`
                       : `You can complete this trip automatically upon arrival at ${currentTrip.destination} (within 500m GPS radius) or confirm manually.`}
@@ -1227,10 +1175,10 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                     borderRadius: "6px",
                     backgroundColor:
                       locationFeedback.type === "error"
-                        ? "#fef2f2"
+                        ? "var(--danger-bg)"
                         : locationFeedback.type === "warning"
                         ? "#fffbeb"
-                        : "#eff6ff",
+                        : "var(--bg-surface-alt)",
                     borderLeft: `4px solid ${
                       locationFeedback.type === "error"
                         ? "#ef4444"
@@ -1288,14 +1236,14 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
                 <span className="kpi-label">Dates</span>
                 <strong>
-                  {currentTrip.startDate ? new Date(currentTrip.startDate).toLocaleDateString() : "10 Oct 2026"} –{" "}
-                  {currentTrip.returnDate ? new Date(currentTrip.returnDate).toLocaleDateString() : "13 Oct 2026"}
+                  {currentTrip.startDate ? new Date(currentTrip.startDate).toLocaleDateString(undefined, { timeZone: "UTC" }) : "Dates not set"} –{" "}
+                  {currentTrip.returnDate ? new Date(currentTrip.returnDate).toLocaleDateString(undefined, { timeZone: "UTC" }) : "Dates not set"}
                 </strong>
               </div>
 
               <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
                 <span className="kpi-label">Travellers</span>
-                <strong>{currentTrip.travellerCount || 2} Persons</strong>
+                <strong>{currentTrip.travellerCount ?? "Not set"} Persons</strong>
               </div>
 
               <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
@@ -1315,12 +1263,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                 <strong>LKR {(currentTrip.returnBudgetReserve || 0).toLocaleString()}</strong>
               </div>
 
-              <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
-                <span className="kpi-label">Safe to Spend</span>
-                <strong style={{ color: "var(--secondary)" }}>
-                  LKR {Math.max(0, (currentTrip.budgetAmount || 0) - (currentTrip.spentAmount || 0) - (currentTrip.returnBudgetReserve || 0)).toLocaleString()}
-                </strong>
-              </div>
+
 
               <div style={{ padding: "12px", background: "var(--bg-surface-alt)", borderRadius: "var(--radius-sm)" }}>
                 <span className="kpi-label">Food Budget</span>
@@ -1376,13 +1319,13 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                     style={{
                       padding: "16px",
                       borderRadius: "var(--radius-md)",
-                      backgroundColor: "#f0f9ff",
+                      backgroundColor: "var(--bg-surface)",
                       border: "1px solid #bae6fd",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                       <span style={{ fontSize: "1.2rem" }}>📅</span>
-                      <strong style={{ fontSize: "0.95rem", color: "#0369a1" }}>
+                      <strong style={{ fontSize: "0.95rem", color: "var(--text-secondary)" }}>
                         Detailed weather forecast is not available yet.
                       </strong>
                     </div>
@@ -1392,7 +1335,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                         display: "inline-block",
                         padding: "2px 8px",
                         borderRadius: "6px",
-                        backgroundColor: "#e0f2fe",
+                        backgroundColor: "var(--bg-surface)",
                         color: "#0284c7",
                         fontSize: "0.75rem",
                         fontWeight: 700,
@@ -1419,7 +1362,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                       style={{
                         padding: "16px",
                         borderRadius: "var(--radius-md)",
-                        backgroundColor: "#fffbeb",
+                        backgroundColor: "var(--bg-surface)",
                         border: "1px solid #fde68a",
                       }}
                     >
@@ -1442,10 +1385,10 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                       </div>
 
                       <div style={{ marginBottom: "12px" }}>
-                        <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#92400e", marginBottom: "4px" }}>
+                        <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "4px" }}>
                           Identified Weather Hazards:
                         </div>
-                        <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.82rem", color: "#78350f" }}>
+                        <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
                           {weatherPlanning.unsuitableReasons?.map((reason, idx) => (
                             <li key={idx} style={{ marginBottom: "2px" }}>{reason}</li>
                           ))}
@@ -1466,7 +1409,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                                 style={{
                                   padding: "12px",
                                   borderRadius: "var(--radius-sm)",
-                                  backgroundColor: "#ffffff",
+                                  backgroundColor: "var(--bg-surface)",
                                   border: "1px solid #fcd34d",
                                   display: "flex",
                                   flexDirection: "column",
@@ -1487,7 +1430,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                                   <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
                                     {alt.condition} • {alt.minTemperatureC}°C – {alt.maxTemperatureC}°C
                                   </div>
-                                  <div style={{ fontSize: "0.75rem", color: "#047857", marginTop: "3px" }}>
+                                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "3px" }}>
                                     ✓ {alt.reason}
                                   </div>
                                 </div>
@@ -1514,8 +1457,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                     style={{
                       padding: "14px 16px",
                       borderRadius: "var(--radius-md)",
-                      backgroundColor: "#f0fdf4",
-                      border: "1px solid #bbf7d0",
+                      backgroundColor: "var(--bg-surface)",
+                      border: "1px solid var(--success-border)",
                       display: "flex",
                       alignItems: "center",
                       gap: "10px",
@@ -1523,10 +1466,10 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                   >
                     <span style={{ fontSize: "1.3rem" }}>✓</span>
                     <div>
-                      <strong style={{ fontSize: "0.95rem", color: "#15803d", display: "block" }}>
+                      <strong style={{ fontSize: "0.95rem", color: "var(--text-secondary)", display: "block" }}>
                         Good conditions for your planned trip.
                       </strong>
-                      <span style={{ fontSize: "0.82rem", color: "#166534" }}>
+                      <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
                         Atmospheric risk score is {weatherPlanning.plannedWeatherRiskScore}/100 ({weatherPlanning.plannedWeatherRiskLevel} risk). Forecast indicates favorable skies and safe road passability.
                       </span>
                     </div>
@@ -1569,7 +1512,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                             padding: "6px 12px",
                             borderRadius: "14px",
                             border: isChecked ? "1px solid #22c55e" : "1px solid var(--border-color)",
-                            backgroundColor: isChecked ? "#dcfce7" : "#ffffff",
+                            backgroundColor: isChecked ? "var(--success-bg)" : "var(--bg-surface)",
                             color: isChecked ? "#15803d" : "var(--text-primary)",
                             fontSize: "0.82rem",
                             cursor: "pointer",
@@ -1594,11 +1537,11 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                     style={{
                       padding: "14px",
                       borderRadius: "var(--radius-md)",
-                      backgroundColor: "#f0fdf4",
-                      border: "1px solid #bbf7d0",
+                      backgroundColor: "var(--bg-surface)",
+                      border: "1px solid var(--success-border)",
                     }}
                   >
-                    <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#166534", marginBottom: "6px" }}>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "6px" }}>
                       ✓ Recommended Safe Activity Categories:
                     </div>
                     <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "0.8rem", color: "#14532d" }}>
@@ -1616,11 +1559,11 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
                       style={{
                         padding: "14px",
                         borderRadius: "var(--radius-md)",
-                        backgroundColor: "#fef2f2",
-                        border: "1px solid #fecaca",
+                        backgroundColor: "var(--bg-surface)",
+                        border: "1px solid var(--danger-border)",
                       }}
                     >
-                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#991b1b", marginBottom: "6px" }}>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "6px" }}>
                         ⚠️ Restricted Activities in Adverse Conditions:
                       </div>
                       <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "0.8rem", color: "#7f1d1d" }}>
@@ -1643,42 +1586,42 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
               className="tw-card"
               style={{
                 border: "2px solid #86efac",
-                backgroundColor: "#f0fdf4",
+                backgroundColor: "var(--bg-surface)",
               }}
             >
               <div className="tw-card-header">
                 <div>
-                  <h3 className="tw-card-title" style={{ color: "#15803d" }}>
+                  <h3 className="tw-card-title" style={{ color: "var(--text-secondary)" }}>
                     <span>🏆</span> Official Trip Summary: {currentTrip.startingPlace} ➔ {currentTrip.destination}
                   </h3>
-                  <span style={{ fontSize: "0.82rem", color: "#166534" }}>
-                    Verified completed on {new Date(currentTrip.completedAt || Date.now()).toLocaleString()}
+                  <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                    Verified completed on {currentTrip.completedAt ? new Date(currentTrip.completedAt).toLocaleString() : "date not recorded"}
                   </span>
                 </div>
                 <span className="badge badge-success">COMPLETED</span>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginTop: "10px" }}>
-                <div style={{ padding: "12px", background: "#ffffff", borderRadius: "var(--radius-sm)", border: "1px solid #bbf7d0" }}>
+                <div style={{ padding: "12px", background: "var(--bg-surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--success-border)" }}>
                   <span className="kpi-label">Completion Method</span>
-                  <strong style={{ color: "#15803d" }}>
+                  <strong style={{ color: "var(--text-secondary)" }}>
                     {currentTrip.completionMethod === "LOCATION" ? "📍 GPS Live Arrival (<= 500m)" : "🏁 Manual Confirmation"}
                   </strong>
                 </div>
 
-                <div style={{ padding: "12px", background: "#ffffff", borderRadius: "var(--radius-sm)", border: "1px solid #bbf7d0" }}>
+                <div style={{ padding: "12px", background: "var(--bg-surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--success-border)" }}>
                   <span className="kpi-label">Route Covered</span>
                   <strong>{currentTrip.estimatedDistanceKm || distanceKm} km ({currentTrip.selectedTransport || selectedTransport})</strong>
                 </div>
 
-                <div style={{ padding: "12px", background: "#ffffff", borderRadius: "var(--radius-sm)", border: "1px solid #bbf7d0" }}>
+                <div style={{ padding: "12px", background: "var(--bg-surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--success-border)" }}>
                   <span className="kpi-label">Allocated Budget</span>
                   <strong>LKR {(currentTrip.budgetAmount || 0).toLocaleString()}</strong>
                 </div>
 
-                <div style={{ padding: "12px", background: "#ffffff", borderRadius: "var(--radius-sm)", border: "1px solid #bbf7d0" }}>
+                <div style={{ padding: "12px", background: "var(--bg-surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--success-border)" }}>
                   <span className="kpi-label">Packing Preparation</span>
-                  <strong style={{ color: "#15803d" }}>
+                  <strong style={{ color: "var(--text-secondary)" }}>
                     {totalPackedCount} Items Packed
                   </strong>
                 </div>
@@ -1686,84 +1629,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
             </div>
           )}
 
-          {/* Curated Recommendations for Destination Matching Onboarding Preferences */}
-          <div className="tw-card">
-            <div className="tw-card-header">
-              <div>
-                <h3 className="tw-card-title">
-                  <span>✨</span> Curated Experiences for {currentTrip.destination}
-                </h3>
-                <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-                  Personalized by travel profile: {user?.travelStyle || "Adventure"} •{" "}
-                  {Array.isArray(user?.interests) ? user.interests.join(", ") : (user?.interests || "Nature, Hiking")}
-                </span>
-              </div>
-            </div>
 
-            {activityFeedback && (
-              <div
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: "6px",
-                  backgroundColor: activityFeedback.startsWith("✓") ? "#dcfce7" : "#eff6ff",
-                  borderLeft: activityFeedback.startsWith("✓") ? "4px solid #22c55e" : "4px solid #3b82f6",
-                  color: activityFeedback.startsWith("✓") ? "#15803d" : "#1e40af",
-                  fontSize: "0.88rem",
-                  marginBottom: "16px",
-                }}
-              >
-                {activityFeedback}
-              </div>
-            )}
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
-              {curatedActivities.map((act, index) => (
-                <div
-                  key={index}
-                  style={{
-                    padding: "16px",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "var(--radius-md)",
-                    backgroundColor: "var(--bg-surface-alt)",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: "10px",
-                  }}
-                >
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
-                      <strong style={{ fontSize: "1rem", color: "var(--primary)" }}>{act.name}</strong>
-                      <span className="badge badge-info" style={{ fontSize: "0.7rem" }}>{act.category}</span>
-                    </div>
-
-                    <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.4", margin: "6px 0" }}>
-                      {act.description}
-                    </p>
-
-                    <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                      📍 {act.location} • ⏱️ {act.durationMinutes} mins
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-color)", paddingTop: "10px" }}>
-                    <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                      {act.estimatedCost > 0 ? `LKR ${act.estimatedCost.toLocaleString()}` : "Free Admission"}
-                    </span>
-
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={() => handleAddCuratedActivity(act)}
-                      title="Save this experience directly to PostgreSQL activity schedule"
-                    >
-                      ➕ Add to Itinerary
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
@@ -1789,7 +1655,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
             <h2 style={{ fontSize: "1.75rem", fontWeight: 900, color: "var(--primary)", margin: "0 0 8px" }}>
               Congratulations!
             </h2>
-            <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#15803d", margin: "0 0 16px" }}>
+            <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-secondary)", margin: "0 0 16px" }}>
               You've reached {celebrationData.destination}!
             </h3>
 
@@ -1799,7 +1665,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
 
             <div
               style={{
-                backgroundColor: "#f8fafc",
+                backgroundColor: "var(--bg-surface)",
                 borderRadius: "var(--radius-md)",
                 padding: "12px",
                 border: "1px solid var(--border-color)",
@@ -1846,7 +1712,7 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips }) {
         >
           <div
             style={{
-              background: "#ffffff",
+              background: "var(--bg-surface)",
               borderRadius: "16px",
               maxWidth: "460px",
               width: "100%",

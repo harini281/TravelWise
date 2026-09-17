@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'api_client.dart' as http;
 
 import 'config.dart';
 
@@ -231,7 +231,7 @@ class _WorkflowDashboardState extends State<WorkflowDashboard> {
 
     return Card(
       elevation: 1,
-      color: isFallback ? const Color(0xFFFFFBEB) : Colors.white,
+      color: isFallback ? const Color(0xFF40372C) : const Color(0xFF112C38),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(color: isFallback ? Colors.amber.shade300 : Colors.grey.shade300),
@@ -270,7 +270,7 @@ class _WorkflowDashboardState extends State<WorkflowDashboard> {
             const SizedBox(height: 4),
             Text(
               fallbackTask,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              style: TextStyle(color: const Color(0xFFB9CDD2), fontSize: 12),
             ),
             const SizedBox(height: 8),
             if (analysis != null) ...[
@@ -325,7 +325,7 @@ class _WorkflowDashboardState extends State<WorkflowDashboard> {
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade700,
+                backgroundColor: const Color(0xFFABD7E5),
                 foregroundColor: Colors.white,
               ),
               onPressed: processing ? null : runIntelligentPlan,
@@ -340,7 +340,7 @@ class _WorkflowDashboardState extends State<WorkflowDashboard> {
             padding: const EdgeInsets.all(10),
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.red.shade50,
+              color: const Color(0xFF402C32),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.red.shade300),
             ),
@@ -362,7 +362,7 @@ class _WorkflowDashboardState extends State<WorkflowDashboard> {
             padding: const EdgeInsets.all(10),
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.green.shade50,
+              color: const Color(0xFF173C35),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.green.shade300),
             ),
@@ -523,7 +523,7 @@ class _WorkflowDashboardState extends State<WorkflowDashboard> {
                       children: [
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade700,
+                            backgroundColor: const Color(0xFF91DDBF),
                             foregroundColor: Colors.white,
                           ),
                           onPressed: (processing || workflow!['status'] == 'COMPLETED')
@@ -534,7 +534,7 @@ class _WorkflowDashboardState extends State<WorkflowDashboard> {
                         ),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade700,
+                            backgroundColor: const Color(0xFFF2AAA5),
                             foregroundColor: Colors.white,
                           ),
                           onPressed: processing ? null : () => submitDecision('REJECT'),
@@ -561,13 +561,13 @@ class _WorkflowDashboardState extends State<WorkflowDashboard> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: const Color(0xFF173641),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.grey.shade300),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.lock_outline, color: Colors.grey.shade600, size: 22),
+                          Icon(Icons.lock_outline, color: const Color(0xFFB9CDD2), size: 22),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(

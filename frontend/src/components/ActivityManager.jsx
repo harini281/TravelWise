@@ -1,6 +1,7 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useEffect, useState } from "react";
+import { ErrorState, LoadingState } from "./TravelWiseUI";
 import { API_BASE_URL } from "../apiConfig";
-import { getRecommendedActivities } from "../utils/destinationRecommendations";
 
 const API_URL = API_BASE_URL;
 
@@ -48,7 +49,7 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
       const response = await fetch(`${API_URL}/api/Risk/weather/trip/${tripId}`);
       if (response.ok) {
         const data = await response.json();
-        const cond = data.weatherCondition || (data.weatherCode >= 51 ? "Rain" : "Clear");
+        const cond = data.weatherCondition || (data.weatherCode == null ? "" : data.weatherCode >= 51 ? "Rain" : "Clear");
         setWeatherCondition(cond);
       }
     } catch {
@@ -125,21 +126,7 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
     );
   }
 
-  // Parse user interests
-  let userInterests = [];
-  if (Array.isArray(user?.interests)) {
-    userInterests = user.interests;
-  } else if (typeof user?.interests === "string") {
-    try {
-      userInterests = JSON.parse(user.interests);
-    } catch {
-      userInterests = user.interests.split(",").map((s) => s.trim()).filter(Boolean);
-    }
-  }
-
-  // Fetch recommended curated activities
-  const destination = trip?.destination || "Ella";
-  const recommended = getRecommendedActivities(destination, userInterests, weatherCondition);
+  const destination = trip?.destination || "your destination";
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -190,35 +177,6 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
     setShowModal(false);
   };
 
-  const handlePreFillCurated = (act) => {
-    let startStr = "";
-    let endStr = "";
-    if (trip?.startDate) {
-      try {
-        const d = new Date(trip.startDate);
-        d.setHours(10, 0, 0, 0);
-        startStr = d.toISOString().slice(0, 16);
-        const dend = new Date(d.getTime() + (act.durationMinutes || 90) * 60000);
-        endStr = dend.toISOString().slice(0, 16);
-      } catch {
-        // ignore
-      }
-    }
-
-    setForm({
-      name: act.name,
-      category: act.category,
-      description: act.description,
-      location: act.location,
-      estimatedCost: String(act.estimatedCost || 0),
-      durationMinutes: String(act.durationMinutes || 90),
-      scheduledStart: startStr,
-      scheduledEnd: endStr,
-      status: "PLANNED",
-    });
-    setEditingId(null);
-    setShowModal(true);
-  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -353,7 +311,8 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
   const totalCost = activities.reduce((sum, a) => sum + (Number(a.estimatedCost) || 0), 0);
   const totalDurationMinutes = activities.reduce((sum, a) => sum + (Number(a.durationMinutes) || 0), 0);
 
-  const isRainy = weatherCondition.toLowerCase().includes("rain") || weatherCondition.toLowerCase().includes("drizzle");
+  if (loading) return <LoadingState label="Loading your itinerary…"/>;
+  if (error && activities.length === 0) return <ErrorState message={error} onRetry={loadActivities}/>;
 
   return (
     <section>
@@ -410,36 +369,9 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
         </div>
       )}
 
-      {/* Weather Advisory Banner */}
-      <div
-        className="tw-card"
-        style={{
-          padding: "16px 20px",
-          marginBottom: "24px",
-          backgroundColor: isRainy ? "#fffbeb" : "var(--primary-light)",
-          border: `1px solid ${isRainy ? "#fde68a" : "var(--teal-border)"}`,
-          display: "flex",
-          alignItems: "center",
-          gap: "14px",
-          flexWrap: "wrap",
-        }}
-      >
-        <span style={{ fontSize: "1.8rem" }}>{isRainy ? "🌧️" : "☀️"}</span>
-        <div style={{ flex: 1 }}>
-          <strong style={{ display: "block", color: "var(--ink)", fontSize: "0.95rem" }}>
-            {isRainy
-              ? `Advisory for ${destination}: Rain Reported`
-              : `Current Weather for ${destination}: ${weatherCondition || "Sunny & Clear"}`}
-          </strong>
-          <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-            {isRainy
-              ? "Recommending indoor artisanal tea tours, cooking masterclasses, and historic museums to protect your itinerary from wet trail conditions."
-              : "Outdoor panoramic ridge climbs, historic viaduct walks, and nature preserves are primed for exploration."}
-          </span>
-        </div>
-        <span className="badge badge-info" style={{ alignSelf: "center" }}>
-          Live Open-Meteo Feed
-        </span>
+      <div className="tw-card" style={{ padding: "18px", marginBottom: "24px" }}>
+        <strong>{weatherCondition ? `${destination}: ${weatherCondition}` : "Weather not available"}</strong>
+        <p style={{ color: "var(--text-secondary)", marginTop: "6px", fontSize: ".85rem" }}>{weatherCondition ? "Check Safety for a full assessment before confirming outdoor activities." : "Open Safety to request current conditions."}</p>
       </div>
 
       {/* Summary KPI Cards */}
@@ -489,126 +421,6 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
       </div>
 
       {/* ======================================================== */}
-      {/* SECTION 1: CURATED RECOMMENDATIONS FOR DESTINATION       */}
-      {/* ======================================================== */}
-      <div style={{ marginBottom: "36px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "16px", flexWrap: "wrap", gap: "8px" }}>
-          <div>
-            <h3 style={{ fontFamily: "var(--font-serif)", fontSize: "1.45rem", fontWeight: 600, color: "var(--ink)", margin: 0 }}>
-              ✨ Recommended Experiences for {destination}
-            </h3>
-            <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)", margin: "4px 0 0" }}>
-              Curated Sri Lankan attractions prioritized by your interests and live weather suitability.
-            </p>
-          </div>
-          <span className="badge badge-ai">Personalized Discovery</span>
-        </div>
-
-        {recommended.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
-            No specific curated highlights cataloged for {destination}. You can add any custom excursion using the button above.
-          </p>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "18px",
-            }}
-          >
-            {recommended.map((act) => {
-              const matchesInterest = act.matchedInterests?.some((i) => userInterests.includes(i));
-              const isRainSafe = act.weatherSuitability?.includes("Rain");
-
-              return (
-                <div
-                  key={act.name}
-                  className="tw-card"
-                  style={{
-                    margin: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    borderTop: `4px solid ${matchesInterest ? "var(--teal)" : "var(--border-color)"}`,
-                    position: "relative",
-                  }}
-                >
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "8px" }}>
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: matchesInterest ? "var(--teal-light)" : "var(--bg-surface-alt)",
-                          color: matchesInterest ? "var(--teal)" : "var(--text-secondary)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {act.category}
-                      </span>
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: isRainSafe ? "#ecfdf5" : "#eff6ff",
-                          color: isRainSafe ? "#047857" : "#1d4ed8",
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        {isRainSafe ? "☔ Rain Friendly" : "☀️ Clear Sky"}
-                      </span>
-                    </div>
-
-                    <h4
-                      style={{
-                        fontFamily: "var(--font-serif)",
-                        fontSize: "1.15rem",
-                        fontWeight: 600,
-                        color: "var(--ink)",
-                        margin: "0 0 6px",
-                        lineHeight: "1.35",
-                      }}
-                    >
-                      {act.name}
-                    </h4>
-
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5", marginBottom: "14px" }}>
-                      {act.description}
-                    </p>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "14px" }}>
-                      <div>📍 {act.location}</div>
-                      <div>⏱️ Est. Duration: {act.durationMinutes} mins</div>
-                      <div style={{ color: act.estimatedCost === 0 ? "var(--success)" : "var(--text-primary)", fontWeight: 600 }}>
-                        💵 {act.estimatedCost === 0 ? "Free Admission / Scenic Landmark" : `LKR ${act.estimatedCost.toLocaleString()}`}
-                      </div>
-                      {matchesInterest && (
-                        <div style={{ color: "var(--teal)", fontWeight: 600, marginTop: "2px" }}>
-                          🎯 Matches your onboarding interests
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm"
-                    style={{
-                      width: "100%",
-                      borderColor: "var(--teal)",
-                      color: "var(--teal)",
-                      fontWeight: 600,
-                    }}
-                    onClick={() => handlePreFillCurated(act)}
-                  >
-                    ➕ Add to Itinerary
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ======================================================== */}
       {/* SECTION 2: SCHEDULED ITINERARY TIMELINE                  */}
       {/* ======================================================== */}
       <div>
@@ -634,7 +446,7 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
               No activities scheduled yet
             </h4>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem", marginBottom: "20px", maxWidth: "420px", margin: "0 auto 20px" }}>
-              Select any of the recommended highlights above or click below to schedule your own excursion.
+              Add an activity with its location, cost, and schedule to build your itinerary.
             </p>
             <button
               type="button"

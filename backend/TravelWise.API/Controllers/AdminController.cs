@@ -140,10 +140,22 @@ public class AdminController : ControllerBase
         var totalAllocatedBudget = await _context.Trips.SumAsync(t => (decimal?)t.BudgetAmount) ?? 0m;
         var totalActivities = await _context.Activities.CountAsync();
         var totalWorkflows = await _context.AIWorkflows.CountAsync();
-        var pendingApprovals = await _context.AIWorkflows.CountAsync(w => w.ApprovalStatus == "PENDING" || w.Status == "AWAITING_APPROVAL");
+        var pendingApprovals = await _context.AIWorkflows.CountAsync(w => w.Status == "AWAITING_APPROVAL" && w.ValidationPassed && w.ApprovalStatus == "PENDING");
 
+        var activeTrips = await _context.Trips.CountAsync(t => t.Status == "ACTIVE" || t.Status == "IN_PROGRESS" || t.Status == "TRAVELLING");
+        var pendingTravellerDecisions = await _context.AIWorkflows.CountAsync(w => w.ApprovalStatus == "CHANGES_REQUESTED");
+        var workflowStatuses = await _context.AIWorkflows.GroupBy(w => w.Status)
+            .Select(g => new { status = g.Key, count = g.Count() }).ToListAsync();
+        var latestAudit = await _context.WorkflowAuditLogs.AsNoTracking().OrderByDescending(a => a.CreatedAt)
+            .Take(5).Select(a => new { a.Id, a.EventType, a.Message, a.Actor, a.CreatedAt }).ToListAsync();
         return Ok(new
         {
+            capturedAt = DateTime.UtcNow,
+            databaseReachable = true, // This response follows successful queries; no external service health is implied.
+            activeTrips,
+            pendingTravellerDecisions,
+            workflowStatuses,
+            latestAudit,
             totalUsers,
             activeUsers,
             travellerUsers,

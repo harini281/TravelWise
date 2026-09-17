@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
@@ -83,7 +84,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
           gap: "24px",
           flexWrap: "wrap",
           padding: "32px",
-          background: "linear-gradient(135deg, #ffffff 0%, #f2f8f6 100%)",
+          background: "linear-gradient(135deg, var(--bg-surface-alt) 0%, var(--bg-surface-alt) 100%)",
           border: "1px solid #d1e5e0",
           boxShadow: "0 10px 25px -5px rgba(9, 43, 58, 0.05)",
         }}
@@ -151,8 +152,8 @@ export default function ProfilePage({ user, onUpdateUser }) {
             )}
           </div>
           <p style={{ color: "#546e7a", fontSize: "0.95rem", margin: "6px 0 0" }}>
-            Account: <strong style={{ color: "#092b3a" }}>@{user?.username}</strong> &bull; Email:{" "}
-            <strong style={{ color: "#092b3a" }}>{user?.email}</strong>
+            Account: <strong style={{ color: "var(--text-secondary)" }}>@{user?.username}</strong> &bull; Email:{" "}
+            <strong style={{ color: "var(--text-secondary)" }}>{user?.email}</strong>
           </p>
         </div>
 
@@ -169,9 +170,9 @@ export default function ProfilePage({ user, onUpdateUser }) {
       {message && (
         <div
           style={{
-            backgroundColor: "#f0fdf4",
+            backgroundColor: "var(--bg-surface)",
             border: "1px solid #86efac",
-            color: "#166534",
+            color: "var(--text-secondary)",
             padding: "14px 20px",
             borderRadius: "10px",
             marginBottom: "20px",
@@ -189,9 +190,9 @@ export default function ProfilePage({ user, onUpdateUser }) {
       {error && (
         <div
           style={{
-            backgroundColor: "#fef2f2",
+            backgroundColor: "var(--bg-surface)",
             border: "1px solid #fca5a5",
-            color: "#991b1b",
+            color: "var(--text-secondary)",
             padding: "14px 20px",
             borderRadius: "10px",
             marginBottom: "20px",
@@ -230,7 +231,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
             >
               Travel & Planning Intelligence
             </h3>
-            <p style={{ color: "#64748B", fontSize: "0.9rem", margin: "4px 0 0" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", margin: "4px 0 0" }}>
               Tailors your AI itineraries, activity suggestions, and budget guardrails.
             </p>
           </div>
@@ -259,7 +260,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
             style={{
               padding: "16px",
               borderRadius: "12px",
-              backgroundColor: isEditing ? "#ffffff" : "#f8fafc",
+              backgroundColor: isEditing ? "var(--bg-surface)" : "#f8fafc",
               border: "1px solid #e2e8f0",
             }}
           >
@@ -270,7 +271,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
-                color: "#64748B",
+                color: "var(--text-secondary)",
                 marginBottom: "8px",
               }}
             >
@@ -286,7 +287,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
                   borderRadius: "8px",
                   border: "1px solid #cbd5e1",
                   fontSize: "0.95rem",
-                  color: "#092b3a",
+                  color: "var(--text-secondary)",
                   fontWeight: 500,
                 }}
               >
@@ -308,7 +309,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
             style={{
               padding: "16px",
               borderRadius: "12px",
-              backgroundColor: isEditing ? "#ffffff" : "#f8fafc",
+              backgroundColor: isEditing ? "var(--bg-surface)" : "#f8fafc",
               border: "1px solid #e2e8f0",
             }}
           >
@@ -319,7 +320,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
-                color: "#64748B",
+                color: "var(--text-secondary)",
                 marginBottom: "8px",
               }}
             >
@@ -335,7 +336,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
                   borderRadius: "8px",
                   border: "1px solid #cbd5e1",
                   fontSize: "0.95rem",
-                  color: "#092b3a",
+                  color: "var(--text-secondary)",
                   fontWeight: 500,
                 }}
               >
@@ -355,7 +356,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
             style={{
               padding: "16px",
               borderRadius: "12px",
-              backgroundColor: isEditing ? "#ffffff" : "#f8fafc",
+              backgroundColor: isEditing ? "var(--bg-surface)" : "#f8fafc",
               border: "1px solid #e2e8f0",
             }}
           >
@@ -366,7 +367,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
-                color: "#64748B",
+                color: "var(--text-secondary)",
                 marginBottom: "8px",
               }}
             >
@@ -382,7 +383,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
                   borderRadius: "8px",
                   border: "1px solid #cbd5e1",
                   fontSize: "0.95rem",
-                  color: "#092b3a",
+                  color: "var(--text-secondary)",
                   fontWeight: 500,
                 }}
               >
@@ -401,7 +402,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
             style={{
               padding: "16px",
               borderRadius: "12px",
-              backgroundColor: isEditing ? "#ffffff" : "#f8fafc",
+              backgroundColor: isEditing ? "var(--bg-surface)" : "#f8fafc",
               border: "1px solid #e2e8f0",
             }}
           >
@@ -412,7 +413,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
-                color: "#64748B",
+                color: "var(--text-secondary)",
                 marginBottom: "8px",
               }}
             >
@@ -428,7 +429,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
                   borderRadius: "8px",
                   border: "1px solid #cbd5e1",
                   fontSize: "0.95rem",
-                  color: "#092b3a",
+                  color: "var(--text-secondary)",
                   fontWeight: 500,
                 }}
               >

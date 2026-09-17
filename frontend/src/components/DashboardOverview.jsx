@@ -1,613 +1,372 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
+import {
+  DestinationVisual,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  PrimaryButton,
+  SecondaryButton,
+  SectionCard,
+  StatCard,
+  StatusBadge,
+  WorkflowTimeline,
+} from "./TravelWiseUI";
 
-function DashboardOverview({ trip, user, onNavigate }) {
-  const [budgetSummary, setBudgetSummary] = useState(null);
-  const [activities, setActivities] = useState([]);
-  const [weather, setWeather] = useState(null);
-  const [readiness, setReadiness] = useState(null);
-  const [workflow, setWorkflow] = useState(null);
+const money = (value) =>
+  new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
+    maximumFractionDigits: 0,
+  }).format(value);
+const date = (value) =>
+  value
+    ? new Date(value).toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+    : "Dates not set";
+const stamp = (value) =>
+  value ? new Date(value).toLocaleString() : "Time unavailable";
+
+export default function DashboardOverview({ trip, user, onNavigate }) {
+  const [snapshot, setSnapshot] = useState(null);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
-    async function loadDashboardData() {
-      const tripId = trip?.id;
-      if (!tripId) {
-        setBudgetSummary(null);
-        setActivities([]);
-        setWeather(null);
-        setReadiness(null);
-        setWorkflow(null);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-
-        const [bRes, aRes, wRes, rRes, wfRes] = await Promise.allSettled([
-          fetch(`${API_BASE_URL}/api/Budgets/trip/${tripId}/summary`).then((r) => (r.ok ? r.json() : null)),
-          fetch(`${API_BASE_URL}/api/Activities/trip/${tripId}`).then((r) => (r.ok ? r.json() : [])),
-          fetch(`${API_BASE_URL}/api/Risk/weather/trip/${tripId}`).then((r) => (r.ok ? r.json() : null)),
-          fetch(`${API_BASE_URL}/api/Readiness/trip/${tripId}`).then((r) => (r.ok ? r.json() : null)),
-          fetch(`${API_BASE_URL}/api/Workflow/trip/${tripId}/latest`).then((r) => (r.ok ? r.json() : null)),
-        ]);
-
-        if (bRes.status === "fulfilled" && bRes.value) setBudgetSummary(bRes.value);
-        if (aRes.status === "fulfilled" && aRes.value) setActivities(Array.isArray(aRes.value) ? aRes.value : []);
-        if (wRes.status === "fulfilled" && wRes.value) setWeather(wRes.value);
-        if (rRes.status === "fulfilled" && rRes.value) setReadiness(rRes.value);
-        if (wfRes.status === "fulfilled" && wfRes.value) setWorkflow(wfRes.value);
-      } catch (e) {
-        console.error("Dashboard overview load error:", e);
-      } finally {
-        setLoading(false);
-      }
+    setSnapshot(null);
+    setError("");
+    if (!trip?.id) {
+      setLoading(false);
+      return;
     }
+    const controller = new AbortController();
+    setLoading(true);
+    fetch(`${API_BASE_URL}/api/Dashboard/trip/${trip.id}`, {
+      signal: controller.signal,
+      headers: { Authorization: `Bearer ${user.token}` },
+    })
+      .then(async (response) => {
+        if (!response.ok)
+          throw new Error(
+            "Your trip summary is unavailable. Your saved plan has not changed.",
+          );
+        return response.json();
+      })
+      .then((data) => {
+        if (!controller.signal.aborted) setSnapshot(data);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") setError(err.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [trip?.id, user.token, revision]);
 
-    loadDashboardData();
-  }, [trip?.id]);
-
-  const totalSpent = budgetSummary?.totalSpent ?? trip?.spentAmount ?? 0;
-  const totalBudget = budgetSummary?.totalBudget ?? trip?.budgetAmount ?? 0;
-  const remainingBudget = budgetSummary?.remainingFunds ?? (totalBudget - totalSpent);
-  const spendPct = budgetSummary?.spendingPercentage ?? (totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0);
-  const budgetHealthStatus = budgetSummary?.budgetHealth ?? (totalBudget > 0 ? "HEALTHY" : "UNSET");
-  const safeToSpend = budgetSummary?.safeToSpend ?? 0;
-
-  const getHealthBadge = (health) => {
-    switch (health) {
-      case "HEALTHY":
-        return <span className="badge badge-success">HEALTHY</span>;
-      case "MODERATE":
-        return <span className="badge badge-info">MODERATE</span>;
-      case "WARNING":
-        return <span className="badge badge-warning">WARNING</span>;
-      case "OVERSPENT":
-      case "CRITICAL":
-        return <span className="badge badge-danger">OVERSPENT</span>;
-      default:
-        return <span className="badge" style={{ backgroundColor: "var(--bg-surface-alt)", color: "var(--text-muted)" }}>UNSET</span>;
+  if (!trip)
+    return (
+      <EmptyState
+        onExplore={() => onNavigate("explore")}
+        onPlan={() => onNavigate("trip")}
+      />
+    );
+  const data = snapshot?.trip.id === trip.id ? snapshot : null;
+  const nextActivity = data?.activities.find(
+    (a) =>
+      !["CANCELLED", "COMPLETED"].includes(a.status) &&
+      new Date(a.scheduledEnd) >= new Date(),
+  );
+  const budget = data?.budget;
+  const checks = data
+    ? [
+        [
+          "Route and dates",
+          Boolean(
+            trip.startingPlace &&
+            trip.destination &&
+            trip.startDate &&
+            trip.returnDate,
+          ),
+          "trip",
+        ],
+        ["Budget set", budget.allocated > 0, "budget"],
+        [
+          "Itinerary started",
+          data.activities.some((a) => a.status !== "CANCELLED"),
+          "activities",
+        ],
+        [
+          "Required preparation",
+          data.readiness.total > 0 &&
+            data.readiness.completed === data.readiness.total,
+          "readiness",
+        ],
+        [
+          "Plan verified",
+          data.workflow?.approvalStatus === "APPROVED",
+          "ai_planner",
+        ],
+      ]
+    : [];
+  const progress = checks.filter(([, checked]) => checked).length;
+  let interests = user?.interests || [];
+  if (typeof interests === "string") {
+    try {
+      interests = JSON.parse(interests);
+    } catch {
+      interests = interests.split(",");
     }
-  };
-
-  const getWorkflowBadge = (wf) => {
-    if (!wf) return <span className="badge badge-info">NOT STARTED</span>;
-    if (wf.approvalStatus === "APPROVED" || wf.status === "COMPLETED") return <span className="badge badge-success">APPROVED</span>;
-    if (wf.approvalStatus === "CHANGES_REQUESTED" || wf.status === "REVISION_REQUIRED") return <span className="badge badge-warning">CHANGES REQUESTED</span>;
-    if (wf.approvalStatus === "REJECTED" || wf.status === "REJECTED") return <span className="badge badge-danger">REJECTED</span>;
-    if (wf.status === "AWAITING_APPROVAL") return <span className="badge badge-warning">AWAITING REVIEW</span>;
-    return <span className="badge badge-ai">{wf.status}</span>;
-  };
-
-  const completedRequirements = readiness?.checklist?.filter((item) => item.status === "COMPLETED")?.length ?? 0;
-  const totalRequirements = readiness?.checklist?.length ?? 0;
-  const readinessPct = totalRequirements > 0 ? Math.round((completedRequirements / totalRequirements) * 100) : 100;
-
-  const destinationsInspiration = [
-    {
-      name: "Ella",
-      label: "Highland Escapes",
-      desc: "Nine Arches Bridge, misty tea plantations, and ridge treks.",
-      image: "https://images.unsplash.com/photo-1586613834526-6f8b5c7d0ca5?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      name: "Sigiriya",
-      label: "Ancient Horizons",
-      desc: "5th-century rock fortress, water gardens, and wild jungle views.",
-      image: "https://images.unsplash.com/photo-1588598198321-9735fd524a25?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      name: "Kandy",
-      label: "Culture & Living Heritage",
-      desc: "Temple of the Tooth, royal botanical gardens, and highland lake breeze.",
-      image: "https://images.unsplash.com/photo-1588258524675-cf2a3a3c0e2e?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      name: "Galle",
-      label: "Coastal Character",
-      desc: "Dutch colonial ramparts, oceanfront light, and maritime cobblestone lanes.",
-      image: "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      name: "Nuwara Eliya",
-      label: "Cooler Days",
-      desc: "Lake Gregory, colonial bungalows, and mountain tea factory tours.",
-      image: "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80",
-    },
-  ];
-
+  }
+  if (!Array.isArray(interests)) interests = [];
+  const recommendations =
+    data?.activities
+      .filter(
+        (a) =>
+          a.status !== "CANCELLED" &&
+          a.status !== "COMPLETED" &&
+          interests.some((interest) =>
+            `${a.category} ${a.name}`
+              .toLowerCase()
+              .includes(String(interest).trim().toLowerCase()),
+          ),
+      )
+      .slice(0, 3) || [];
+  const workflow = data?.workflow;
   return (
-    <div>
-      {/* Personalized Welcome & Preferences Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "16px",
-          marginBottom: "24px",
-          padding: "4px 0",
-        }}
+    <div className="tw-dashboard">
+      <PageHeader
+        eyebrow="Your travel command centre"
+        title={`Welcome${user.fullName || user.username ? `, ${(user.fullName || user.username).split(" ")[0]}` : " back"}.`}
+        description="A clear view of your journey, with room for what comes next."
       >
-        <div>
-          <span
-            style={{
-              color: "var(--teal)",
-              fontSize: "0.76rem",
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-            }}
-          >
-            Traveller Workspace
-          </span>
-          <h1
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "2.1rem",
-              fontWeight: 600,
-              color: "var(--ink)",
-              margin: "4px 0 6px",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Welcome, {user?.fullName || user?.username || "Traveller"} 👋
-          </h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", margin: 0 }}>
-            {trip ? `Managing your journey to ${trip.destination}` : "Plan your next mindful journey with precision telemetry."}
+        <SecondaryButton onClick={() => onNavigate("explore")}>
+          Explore destinations
+        </SecondaryButton>
+      </PageHeader>
+      <DestinationVisual query={trip.destination} className="tw-trip-hero">
+        <div className="tw-trip-hero-content">
+          <div className="tw-actions">
+            <span className="tw-eyebrow">YOUR SELECTED JOURNEY</span>
+            <StatusBadge tone="teal">{trip.status}</StatusBadge>
+          </div>
+          <h2>{trip.destination}</h2>
+          <p className="tw-trip-route">
+            {trip.startingPlace || "Starting place not set"}{" "}
+            <span aria-hidden="true">⟶</span> {trip.destination}
           </p>
-        </div>
-
-        {/* Saved Preferences Summary Badge */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            backgroundColor: "#ffffff",
-            padding: "8px 16px",
-            borderRadius: "var(--radius-full)",
-            border: "1px solid var(--border-color)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          <span style={{ fontSize: "1.1rem" }}>🧭</span>
-          <div style={{ fontSize: "0.84rem" }}>
-            <strong style={{ color: "var(--ink)" }}>{user?.travelStyle || "Adventure"}</strong>
-            <span style={{ color: "var(--border-color)", margin: "0 8px" }}>|</span>
-            <span style={{ color: "var(--text-secondary)" }}>
-              {Array.isArray(user?.interests)
-                ? user.interests.slice(0, 2).join(", ")
-                : (user?.interests || "Nature, Hiking")}
+          <div className="tw-trip-facts">
+            <span>
+              {date(trip.startDate)} — {date(trip.returnDate)}
             </span>
-            <span style={{ color: "var(--border-color)", margin: "0 8px" }}>|</span>
-            <span style={{ color: "var(--teal)", fontWeight: 600 }}>{user?.budgetStyle || "Balanced"}</span>
+            <span>
+              {trip.travellerCount}{" "}
+              {trip.travellerCount === 1 ? "traveller" : "travellers"}
+            </span>
+            {trip.tripType && <span>{trip.tripType}</span>}
           </div>
-          <button
-            type="button"
-            onClick={() => onNavigate("profile")}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--teal)",
-              fontSize: "0.82rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              marginLeft: "4px",
-            }}
-          >
-            Edit
-          </button>
+          <PrimaryButton onClick={() => onNavigate("trip")}>
+            Open your trip →
+          </PrimaryButton>
         </div>
-      </div>
-
-      {/* ========================================================== */}
-      {/* SCENARIO A: NO TRIP PLANNED YET (BEAUTIFUL EMPTY STATE)    */}
-      {/* ========================================================== */}
-      {!trip ? (
-        <section>
-          {/* Main Hero Card for Empty State */}
-          <div
-            style={{
-              backgroundColor: "var(--bg-navy)",
-              color: "#ffffff",
-              borderRadius: "var(--radius-lg)",
-              padding: "clamp(32px, 5vw, 48px)",
-              position: "relative",
-              overflow: "hidden",
-              marginBottom: "36px",
-              boxShadow: "var(--shadow-lg)",
-              background: `linear-gradient(135deg, rgba(8, 45, 58, 0.95) 0%, rgba(6, 36, 49, 0.88) 100%), url('https://images.unsplash.com/photo-1586613834526-6f8b5c7d0ca5?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat`,
-            }}
-          >
-            <div style={{ maxWidth: "600px", position: "relative", zIndex: 1 }}>
-              <span
-                style={{
-                  color: "var(--teal-border)",
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  display: "block",
-                  marginBottom: "12px",
-                }}
-              >
-                No Active Journey Scheduled
-              </span>
-              <h2
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontSize: "clamp(2.2rem, 4vw, 3.4rem)",
-                  fontWeight: 500,
-                  color: "#ffffff",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.03em",
-                  margin: "0 0 16px",
-                }}
-              >
-                Where will you go next?
-              </h2>
-              <p
-                style={{
-                  color: "rgba(255, 255, 255, 0.85)",
-                  fontSize: "1.05rem",
-                  lineHeight: 1.6,
-                  marginBottom: "28px",
-                }}
-              >
-                You haven&apos;t planned a journey yet. Create your first itinerary to unlock intelligent budgeting, live atmospheric weather risk, protected return reserves, and AI governance.
-              </p>
-
-              <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => onNavigate("trips")}
-                  style={{
-                    backgroundColor: "var(--teal)",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "14px 24px",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "0.95rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    boxShadow: "0 8px 20px rgba(22, 169, 157, 0.4)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  Plan Your First Trip →
-                </button>
-                <a
-                  href="#destinations-section"
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.12)",
-                    backdropFilter: "blur(8px)",
-                    color: "#ffffff",
-                    border: "1px solid rgba(255, 255, 255, 0.3)",
-                    padding: "14px 22px",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "0.95rem",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
-                  Explore Destinations ↓
-                </a>
-              </div>
-            </div>
+        {data && (
+          <div className="tw-hero-progress">
+            <span className="tw-eyebrow">PLANNING PROGRESS</span>
+            <strong>
+              {progress}
+              <small> / {checks.length}</small>
+            </strong>
+            <p>planning steps recorded</p>
+            <progress
+              value={progress}
+              max={checks.length}
+              aria-label="Planning steps recorded"
+            />
           </div>
-
-          {/* Curated Destination Inspiration Gallery */}
-          <div id="destinations-section" style={{ marginBottom: "40px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "20px" }}>
-              <div>
-                <span style={{ color: "var(--teal)", fontSize: "0.76rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                  Island Inspiration
-                </span>
-                <h3 style={{ fontFamily: "var(--font-serif)", fontSize: "1.6rem", color: "var(--ink)", margin: "4px 0 0" }}>
-                  Featured Sri Lankan Destinations
-                </h3>
-              </div>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem", margin: 0 }}>
-                Pick a destination to pre-fill your planning itinerary.
-              </p>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-              {destinationsInspiration.map((dest) => (
-                <div
-                  key={dest.name}
-                  style={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "var(--radius-lg)",
-                    border: "1px solid var(--border-color)",
-                    overflow: "hidden",
-                    boxShadow: "var(--shadow-sm)",
-                    display: "flex",
-                    flexDirection: "column",
-                    transition: "transform 0.25s ease, box-shadow 0.25s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "160px",
-                      background: `url('${dest.image}') center/cover no-repeat`,
-                      position: "relative",
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "12px",
-                        left: "12px",
-                        backgroundColor: "rgba(9, 43, 58, 0.8)",
-                        color: "#ffffff",
-                        padding: "4px 10px",
-                        borderRadius: "var(--radius-full)",
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {dest.label}
+        )}
+      </DestinationVisual>
+      {loading && <LoadingState />}
+      {error && (
+        <ErrorState message={error} onRetry={() => setRevision((r) => r + 1)} />
+      )}
+      {data && (
+        <>
+          <div className="tw-stat-grid">
+            <StatCard
+              label="Budget health"
+              value={
+                budget.health === "UNSET"
+                  ? "Budget not set"
+                  : budget.health.toLowerCase()
+              }
+              tone={budget.health === "HEALTHY" ? "teal" : "warning"}
+              detail={
+                budget.allocated > 0
+                  ? `${money(budget.spent)} recorded of ${money(budget.allocated)}`
+                  : "Set a budget to track your spending."
+              }
+              onClick={() => onNavigate("budget")}
+            />
+            <StatCard
+              label="Safe to spend"
+              value={
+                budget.allocated > 0
+                  ? money(budget.safeToSpend)
+                  : "Not calculated"
+              }
+              detail={
+                budget.allocated > 0
+                  ? "After recorded expenses, remaining food allowance, and return reserve. Other future costs may still apply."
+                  : "Available after you set a trip budget."
+              }
+              onClick={() => onNavigate("budget")}
+            />
+            <StatCard
+              label="Next activity"
+              value={nextActivity?.name || "Nothing scheduled ahead"}
+              detail={
+                nextActivity
+                  ? `${stamp(nextActivity.scheduledStart)} · ${nextActivity.location}`
+                  : "Add an experience to your itinerary."
+              }
+              onClick={() => onNavigate("activities")}
+            />
+          </div>
+          <div className="tw-dashboard-columns">
+            <SectionCard eyebrow="One step at a time" title="Trip progress">
+              <ul className="tw-checklist">
+                {checks.map(([label, checked, tab]) => (
+                  <li key={label}>
+                    <span className={checked ? "tw-check checked" : "tw-check"}>
+                      {checked ? "✓" : "·"}
                     </span>
-                  </div>
-
-                  <div style={{ padding: "18px 20px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <div>
-                      <h4 style={{ fontFamily: "var(--font-serif)", fontSize: "1.3rem", color: "var(--ink)", margin: "0 0 6px" }}>
-                        {dest.name}
-                      </h4>
-                      <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", lineHeight: 1.5, margin: "0 0 16px" }}>
-                        {dest.desc}
-                      </p>
-                    </div>
-
+                    <span>{label}</span>
                     <button
-                      type="button"
-                      onClick={() => onNavigate("trips")}
-                      style={{
-                        backgroundColor: "var(--bg-surface-alt)",
-                        color: "var(--teal)",
-                        border: "1px solid var(--border-color)",
-                        padding: "10px",
-                        borderRadius: "var(--radius-md)",
-                        fontSize: "0.85rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        width: "100%",
-                        textAlign: "center",
-                      }}
+                      className="tw-text-button"
+                      onClick={() => onNavigate(tab)}
                     >
-                      Plan Trip to {dest.name} →
+                      {checked ? "Review" : "Continue"} →
                     </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : (
-        /* ========================================================== */
-        /* SCENARIO B: REAL TRIP SELECTED                             */
-        /* ========================================================== */
-        <section>
-          {/* Hero Active Journey Card */}
-          <div
-            style={{
-              backgroundColor: "var(--bg-navy)",
-              color: "#ffffff",
-              borderRadius: "var(--radius-lg)",
-              padding: "clamp(24px, 4vw, 32px)",
-              position: "relative",
-              overflow: "hidden",
-              marginBottom: "24px",
-              boxShadow: "var(--shadow-md)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                  <span style={{ fontSize: "0.78rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-border)", fontWeight: 700 }}>
-                    Active Journey
-                  </span>
-                  <span className="badge" style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", color: "#ffffff" }}>
-                    {trip.status}
-                  </span>
-                  {trip.travelScope && (
-                    <span className="badge" style={{ backgroundColor: "rgba(22, 169, 157, 0.25)", color: "#8ae0d5" }}>
-                      {trip.travelScope}
-                    </span>
-                  )}
-                </div>
-
-                <h2
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)",
-                    margin: "0 0 6px",
-                    fontWeight: 600,
-                    color: "#ffffff",
-                  }}
-                >
-                  {trip.destination} {trip.tripType || "Journey"}
-                </h2>
-
-                <p style={{ color: "#cbd5e1", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-                  <span>{trip.startingPlace}</span>
-                  <span style={{ color: "var(--teal-border)" }}>➔</span>
-                  <strong style={{ color: "#ffffff" }}>{trip.destination}</strong>
-                  {trip.estimatedDistanceKm && (
-                    <span style={{ fontSize: "0.85rem", opacity: 0.8 }}>({trip.estimatedDistanceKm} km)</span>
-                  )}
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+            <SectionCard
+              eyebrow="From your saved plan"
+              title="Planning workflow"
+              action={
+                <StatusBadge>{workflow?.status || "Not started"}</StatusBadge>
+              }
+            >
+              <WorkflowTimeline workflow={workflow} />
+              {workflow?.approvalComment && (
+                <p className="tw-review-note">
+                  Reviewer: {workflow.approvalComment}
                 </p>
-              </div>
-
-              <div
-                style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  backdropFilter: "blur(10px)",
-                  padding: "14px 20px",
-                  borderRadius: "var(--radius-md)",
-                  fontSize: "0.88rem",
-                  lineHeight: 1.6,
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                }}
-              >
-                <div>
-                  📅 <strong>
-                    {new Date(trip.startDate).toLocaleDateString()} – {new Date(trip.returnDate).toLocaleDateString()}
-                  </strong>
-                </div>
-                <div>👥 <strong>{trip.travellerCount} Traveller{trip.travellerCount > 1 ? "s" : ""}</strong> • {trip.tripType}</div>
-                {trip.selectedTransport && <div>🚆 Transport: <strong>{trip.selectedTransport}</strong></div>}
-              </div>
-            </div>
-          </div>
-
-          {/* 4 Summary Metric Cards */}
-          <div className="kpi-grid" style={{ marginBottom: "24px" }}>
-            {/* 1. Budget Card */}
-            <div className="kpi-card" style={{ cursor: "pointer" }} onClick={() => onNavigate("budget")}>
-              <div className="kpi-label">
-                <span>Remaining Budget</span>
-                <span>💳</span>
-              </div>
-              <div className="kpi-value" style={{ color: "var(--ink)" }}>
-                LKR {remainingBudget.toLocaleString()}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
-                <span className="kpi-subtext">LKR {totalSpent.toLocaleString()} spent ({spendPct}%)</span>
-                {getHealthBadge(budgetHealthStatus)}
-              </div>
-              {safeToSpend > 0 && (
-                <div style={{ fontSize: "0.75rem", color: "var(--teal)", fontWeight: 600, marginTop: "6px" }}>
-                  ✓ Safe To Spend: LKR {safeToSpend.toLocaleString()}
-                </div>
               )}
-            </div>
-
-            {/* 2. Weather Telemetry Card */}
-            <div className="kpi-card" style={{ cursor: "pointer" }} onClick={() => onNavigate("safety")}>
-              <div className="kpi-label">
-                <span>Weather & Safety</span>
-                <span>🌦️</span>
-              </div>
-              <div className="kpi-value" style={{ color: "var(--ink)" }}>
-                {weather?.temperatureC != null || weather?.temperatureCelsius != null
-                  ? `${weather.temperatureC ?? weather.temperatureCelsius}°C`
-                  : trip.destination}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
-                <span className="kpi-subtext">
-                  {weather?.weatherCondition || weather?.weatherSummary || "Atmospheric telemetry active"}
-                </span>
-                <span className="badge badge-info">LIVE</span>
-              </div>
-            </div>
-
-            {/* 3. Travel Readiness Card */}
-            <div className="kpi-card" style={{ cursor: "pointer" }} onClick={() => onNavigate("readiness")}>
-              <div className="kpi-label">
-                <span>Travel Readiness</span>
-                <span>📋</span>
-              </div>
-              <div className="kpi-value" style={{ color: "var(--ink)" }}>
-                {readinessPct}%
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
-                <span className="kpi-subtext">
-                  {totalRequirements > 0
-                    ? `${completedRequirements} of ${totalRequirements} checks verified`
-                    : "Readiness verified"}
-                </span>
-                <span className={readinessPct === 100 ? "badge badge-success" : "badge badge-warning"}>
-                  {readinessPct === 100 ? "READY" : "IN PROGRESS"}
-                </span>
-              </div>
-            </div>
-
-            {/* 4. AI Workflow Status Card */}
-            <div className="kpi-card" style={{ cursor: "pointer" }} onClick={() => onNavigate("workflow")}>
-              <div className="kpi-label">
-                <span>AI Governance</span>
-                <span>🧠</span>
-              </div>
-              <div className="kpi-value" style={{ fontSize: "1.3rem", color: "var(--ink)" }}>
-                {workflow?.approvalStatus || "Awaiting Plan"}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
-                <span className="kpi-subtext">
-                  {workflow ? `Reviewer: ${workflow.reviewer || "Assigned"}` : "Multi-agent engine"}
-                </span>
-                {getWorkflowBadge(workflow)}
-              </div>
-            </div>
+              <SecondaryButton onClick={() => onNavigate("ai_planner")}>
+                {workflow ? "Review your plan" : "Start AI planning"}
+              </SecondaryButton>
+            </SectionCard>
           </div>
-
-          {/* Quick Action Navigation Strip */}
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              padding: "16px 20px",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-color)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
+          <div className="tw-stat-grid">
+            <StatCard
+              label="Weather"
+              value={
+                data.weather?.isAvailable
+                  ? `${data.weather.temperatureC}°C`
+                  : "Not available"
+              }
+              detail={
+                data.weather?.isAvailable
+                  ? `${data.weather.windSpeedKph} km/h wind · Saved ${stamp(data.weather.retrievedAt)}. Check Safety for current conditions.`
+                  : "Open Safety to request current conditions."
+              }
+              onClick={() => onNavigate("safety")}
+            />
+            <StatCard
+              label="Safety risk"
+              value={data.risk?.riskLevel || "Not assessed"}
+              detail={
+                data.risk
+                  ? `${data.risk.summary} · Assessed ${stamp(data.risk.assessedAt)}`
+                  : "Run an assessment before making travel decisions."
+              }
+              onClick={() => onNavigate("safety")}
+            />
+            <StatCard
+              label="Readiness"
+              value={
+                data.readiness.total
+                  ? `${data.readiness.completed} / ${data.readiness.total}`
+                  : "Checklist not set"
+              }
+              detail={
+                data.readiness.total
+                  ? "Required items marked complete in your checklist."
+                  : "Add your travel requirements to start preparing."
+              }
+              onClick={() => onNavigate("readiness")}
+            />
+          </div>
+          <SectionCard
+            eyebrow="Make it your journey"
+            title="Personalized recommendations"
+            action={<StatusBadge>From your itinerary</StatusBadge>}
           >
-            <div style={{ fontSize: "0.88rem", color: "var(--text-secondary)" }}>
-              Manage components of this journey:
-            </div>
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ fontSize: "0.82rem", padding: "8px 14px" }}
-                onClick={() => onNavigate("budget")}
-              >
-                💳 Budget & Expenses
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ fontSize: "0.82rem", padding: "8px 14px" }}
-                onClick={() => onNavigate("activities")}
-              >
-                🗓️ Activities ({activities.length})
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ fontSize: "0.82rem", padding: "8px 14px" }}
-                onClick={() => onNavigate("safety")}
-              >
-                🌦️ Safety & Weather
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ fontSize: "0.82rem", padding: "8px 14px" }}
-                onClick={() => onNavigate("workflow")}
-              >
-                🧠 AI Trip Planner
-              </button>
-            </div>
-          </div>
-        </section>
+            {recommendations.length ? (
+              <div className="tw-recommendation-grid">
+                {recommendations.map((a) => (
+                  <article className="tw-recommendation" key={a.id}>
+                    <p className="tw-eyebrow">{a.category}</p>
+                    <h3>{a.name}</h3>
+                    <p>{a.location}</p>
+                    <small>Matches your saved interests</small>
+                    <button
+                      className="tw-text-button"
+                      onClick={() => onNavigate("activities")}
+                    >
+                      Review activity →
+                    </button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="tw-inline-empty">
+                <p>
+                  {interests.length
+                    ? "No planned activities match your saved interests yet. Add experiences to build your itinerary."
+                    : "Save your interests to highlight matching activities in your itinerary."}
+                </p>
+                <SecondaryButton
+                  onClick={() =>
+                    onNavigate(interests.length ? "activities" : "profile")
+                  }
+                >
+                  {interests.length
+                    ? "Plan an activity"
+                    : "Set your preferences"}
+                </SecondaryButton>
+              </div>
+            )}
+          </SectionCard>
+          <p className="tw-provider-note">
+            Saved trip data · Updated {stamp(data.capturedAt)}{" "}
+            <button
+              className="tw-text-button"
+              onClick={() => setRevision((r) => r + 1)}
+            >
+              Refresh
+            </button>
+          </p>
+        </>
       )}
     </div>
   );
 }
-
-export default DashboardOverview;

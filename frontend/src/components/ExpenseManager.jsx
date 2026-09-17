@@ -1,4 +1,6 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useEffect, useState } from "react";
+import { ErrorState, LoadingState } from "./TravelWiseUI";
 import { API_BASE_URL } from "../apiConfig";
 
 const API_URL = API_BASE_URL;
@@ -27,7 +29,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
 
   // Expense form
   const [expenseForm, setExpenseForm] = useState({
-    budgetCategoryId: 1,
+    budgetCategoryId: "",
     amount: "",
     description: "",
     expenseDate: new Date().toISOString().slice(0, 16),
@@ -94,6 +96,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
       });
       setAllocationInputs(allocMap);
 
+      if (!expRes.ok) throw new Error("Your expense records could not be loaded. Please retry.");
       if (expRes.ok) {
         const expData = await expRes.json();
         setExpenses(Array.isArray(expData) ? expData : []);
@@ -175,6 +178,8 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
       return;
     }
 
+    if (!summary.categoryAllocations?.some(c => c.id === Number(expenseForm.budgetCategoryId))) { setError("Choose a budget category for this trip."); return; }
+
     try {
       setError("");
       setSuccessMsg("");
@@ -207,7 +212,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
       setShowAddModal(false);
       setEditingId(null);
       setExpenseForm({
-        budgetCategoryId: 1,
+        budgetCategoryId: "",
         amount: "",
         description: "",
         expenseDate: new Date().toISOString().slice(0, 16),
@@ -349,6 +354,9 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
     });
   };
 
+  if (loading) return <LoadingState label="Loading your budget and expenses…"/>;
+  if (!summary) return <ErrorState message={error || "Your budget is not available."} onRetry={loadBudgetAndExpenses}/>;
+
   // Safe to Spend check
   const totalBudget = summary?.totalBudget ?? 0;
   const totalSpent = summary?.totalSpent ?? 0;
@@ -356,7 +364,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
   const returnReserve = summary?.returnReserve ?? 0;
   const remainingFood = summary?.remainingFoodBudget ?? 0;
   const safeToSpend = summary?.safeToSpend ?? (totalBudget - totalSpent - returnReserve - remainingFood);
-  const budgetHealth = summary?.budgetHealth ?? (totalBudget > 0 ? "HEALTHY" : "UNSET");
+  const budgetHealth = summary?.budgetHealth ?? "UNAVAILABLE";
 
   return (
     <div>
@@ -388,6 +396,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
             className="btn btn-primary"
             onClick={() => {
               setEditingId(null);
+              setExpenseForm({ budgetCategoryId: summary?.categoryAllocations?.[0]?.id || "", amount: "", description: "", expenseDate: new Date().toISOString().slice(0, 16), paymentMethod: "CASH" });
               setShowAddModal(true);
             }}
           >
@@ -421,7 +430,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
             LKR {totalBudget.toLocaleString()}
           </div>
           <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "4px" }}>
-            PostgreSQL Allocated
+            Trip budget
           </div>
         </div>
 
@@ -571,7 +580,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
                       padding: "8px 10px",
                       borderRadius: "var(--radius-sm)",
                       border: `1px solid ${foodPlanForm.budgetStyle === style ? "var(--teal)" : "var(--border-color)"}`,
-                      backgroundColor: foodPlanForm.budgetStyle === style ? "var(--teal-light)" : "#ffffff",
+                      backgroundColor: foodPlanForm.budgetStyle === style ? "var(--teal-light)" : "var(--bg-surface)",
                       color: foodPlanForm.budgetStyle === style ? "var(--teal)" : "var(--text-primary)",
                       fontWeight: foodPlanForm.budgetStyle === style ? 700 : 500,
                       fontSize: "0.8rem",
@@ -949,7 +958,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
         >
           <div
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: "var(--bg-surface)",
               borderRadius: "var(--radius-lg)",
               padding: "28px",
               width: "100%",
@@ -976,10 +985,10 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
 
             <form onSubmit={handleSaveExpense}>
               <div style={{ marginBottom: "14px" }}>
-                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }}>
+                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }} htmlFor="expense-category">
                   Category
                 </label>
-                <select
+                <select id="expense-category"
                   value={expenseForm.budgetCategoryId}
                   onChange={(e) => setExpenseForm({ ...expenseForm, budgetCategoryId: e.target.value })}
                   className="form-select"
@@ -993,10 +1002,10 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
               </div>
 
               <div style={{ marginBottom: "14px" }}>
-                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }}>
+                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }} htmlFor="expense-amount-lkr">
                   Amount (LKR)
                 </label>
-                <input
+                <input id="expense-amount-lkr"
                   type="number"
                   min="1"
                   step="any"
@@ -1009,10 +1018,10 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
               </div>
 
               <div style={{ marginBottom: "14px" }}>
-                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }}>
+                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }} htmlFor="expense-description">
                   Description
                 </label>
-                <input
+                <input id="expense-description"
                   type="text"
                   value={expenseForm.description}
                   onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
@@ -1024,10 +1033,10 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }}>
+                  <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }} htmlFor="expense-date-time">
                     Date & Time
                   </label>
-                  <input
+                  <input id="expense-date-time"
                     type="datetime-local"
                     value={expenseForm.expenseDate}
                     onChange={(e) => setExpenseForm({ ...expenseForm, expenseDate: e.target.value })}
@@ -1037,10 +1046,10 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }}>
+                  <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 600, marginBottom: "4px" }} htmlFor="expense-payment-method">
                     Payment Method
                   </label>
-                  <select
+                  <select id="expense-payment-method"
                     value={expenseForm.paymentMethod}
                     onChange={(e) => setExpenseForm({ ...expenseForm, paymentMethod: e.target.value })}
                     className="form-select"
@@ -1091,7 +1100,7 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
         >
           <div
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: "var(--bg-surface)",
               borderRadius: "var(--radius-lg)",
               padding: "28px",
               width: "100%",

@@ -1,8 +1,8 @@
 export default function TravelWiseLogo({ size = 28, light = false, showTagline = false }) {
-  const primaryColor = light ? "#FFFFFF" : "#0F2B48";
-  const accentColor = "#0D9488";
-  const textColor = light ? "#FFFFFF" : "#0F2B48";
-  const mutedColor = light ? "rgba(255, 255, 255, 0.75)" : "#64748B";
+  const primaryColor = light ? "#FFFFFF" : "var(--text-primary)";
+  const accentColor = "var(--teal)";
+  const textColor = light ? "#FFFFFF" : "var(--text-primary)";
+  const mutedColor = light ? "rgba(255, 255, 255, 0.75)" : "var(--text-muted)";
 
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", userSelect: "none" }}>
@@ -24,7 +24,7 @@ export default function TravelWiseLogo({ size = 28, light = false, showTagline =
       <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
         <span
           style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-family)",
             fontWeight: 800,
             fontSize: size >= 32 ? "1.4rem" : "1.2rem",
             letterSpacing: "-0.02em",

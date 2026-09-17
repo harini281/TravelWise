@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
@@ -290,11 +291,11 @@ function ReadinessDashboard({ tripId, trip, user, onNavigate }) {
     }
   };
 
-  const completedCount = items.filter((i) => i.status === "COMPLETED").length;
+  const completedCount = new Set(items.filter((i) => i.status === "COMPLETED" && requirements.some(r => r.id === i.travelRequirementId)).map(i => i.travelRequirementId)).size;
   const totalCount = requirements.length > 0 ? requirements.length : items.length;
   const computedPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const readinessScore = assessment?.readinessScore ?? computedPct;
-  const readinessLevel = assessment?.readinessLevel ?? (readinessScore >= 80 ? "READY" : readinessScore >= 50 ? "PARTIALLY READY" : "ACTION REQUIRED");
+  const readinessLevel = assessment?.readinessLevel ?? (totalCount === 0 ? "CHECKLIST NOT SET" : completedCount === totalCount ? "CHECKLIST COMPLETE" : "PREPARATION IN PROGRESS");
 
   return (
     <section>

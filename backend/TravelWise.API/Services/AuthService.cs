@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -51,7 +51,7 @@ public class AuthService
 
     public string GenerateJwtToken(User user, out DateTime expiresAt)
     {
-        var secretKey = _configuration["Jwt:Key"] ?? "TravelWiseSuperSecretSecureKeyForUniversityVivaDemo2026!";
+        var secretKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Configure a JWT signing key before issuing tokens.");
         var issuer = _configuration["Jwt:Issuer"] ?? "TravelWiseAPI";
         var audience = _configuration["Jwt:Audience"] ?? "TravelWiseClient";
 

@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from "../apiClient";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../apiConfig";
 
@@ -416,14 +417,14 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
           style={{
             backgroundColor: "var(--warning-bg)",
             border: "2px solid #f59e0b",
-            color: "#92400e",
+            color: "var(--text-secondary)",
             padding: "20px",
             marginBottom: "24px",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
             <span style={{ fontSize: "1.4rem" }}>⚠️</span>
-            <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: "700", color: "#92400e" }}>
+            <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: "700", color: "var(--text-secondary)" }}>
               AI Planning Temporarily Operating in Safe Fallback Mode
             </h3>
             <span className="badge badge-warning" style={{ marginLeft: "auto" }}>
@@ -517,7 +518,7 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
             padding: "20px 24px",
             marginBottom: "24px",
             borderLeft: `5px solid ${workflow.approvalStatus === "APPROVED" ? "var(--success)" : "var(--warning)"}`,
-            backgroundColor: workflow.approvalStatus === "APPROVED" ? "#ecfdf5" : "#fffdf5",
+            backgroundColor: workflow.approvalStatus === "APPROVED" ? "var(--success-bg)" : "#fffdf5",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
