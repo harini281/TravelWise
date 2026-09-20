@@ -1,0 +1,11 @@
+**
+!backend/
+!backend/TravelWise.API/
+!backend/TravelWise.API/**
+**/bin/
+**/obj/
+**/.env
+**/.env.*
+**/*.pfx
+**/*.pem
+**/Properties/launchSettings.json
