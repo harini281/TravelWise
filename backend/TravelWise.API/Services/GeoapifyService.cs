@@ -1,0 +1,138 @@
+using System.Globalization;
+using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
+using TravelWise.API.DTO;
+
+namespace TravelWise.API.Services;
+
+public sealed record GeoapifyOptions(string? ApiKey);
+public sealed class AccommodationProviderException(int statusCode, string message) : Exception(message)
+{
+    public int StatusCode { get; } = statusCode;
+}
+
+// Shared by all users in one backend process. Conservative free-tier guard, not a billing meter.
+// Provider account usage must also be monitored if other apps/instances share its key.
+public sealed class GeoapifyRequestBudget
+{
+    private readonly object gate = new();
+    private readonly Queue<DateTime> recent = new();
+    private DateOnly day;
+    private int credits;
+
+    public void Reserve(int cost)
+    {
+        lock (gate)
+        {
+            var now = DateTime.UtcNow;
+            if (day != DateOnly.FromDateTime(now)) { day = DateOnly.FromDateTime(now); credits = 0; }
+            while (recent.TryPeek(out var time) && now - time >= TimeSpan.FromSeconds(1)) recent.Dequeue();
+            if (credits + cost > 2800)
+                throw new AccommodationProviderException(429, "The accommodation search allowance is temporarily exhausted. Try again later.");
+            if (recent.Count >= 4)
+                throw new AccommodationProviderException(429, "Accommodation search is busy. Please try again in a moment.");
+            credits += cost;
+            recent.Enqueue(now);
+        }
+    }
+}
+
+public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
+    GeoapifyRequestBudget budget, IMemoryCache cache)
+{
+    public async Task<AccommodationDestination[]> Autocomplete(string query, CancellationToken cancellationToken)
+    {
+        using var json = await Request("v1/geocode/autocomplete?type=locality&format=json&limit=8&lang=en&text="
+            + Uri.EscapeDataString(query), 1, cancellationToken);
+        var results = RequiredArray(json.RootElement, "results");
+        return results.EnumerateArray().Select(p =>
+        {
+            var id = Text(p, "place_id");
+            var displayName = Text(p, "formatted");
+            return id is not null && displayName is not null && Coordinates(p, out var lat, out var lon)
+                ? new AccommodationDestination(id, displayName, Text(p, "city"), Text(p, "country"), lat, lon) : null;
+        }).OfType<AccommodationDestination>().DistinctBy(p => p.ProviderId).ToArray();
+    }
+
+    public async Task<AccommodationResults> Search(AccommodationSearchRequest request, CancellationToken cancellationToken)
+    {
+        var destination = request.Destination!;
+        var lat = destination.Latitude.ToString("R", CultureInfo.InvariantCulture);
+        var lon = destination.Longitude.ToString("R", CultureInfo.InvariantCulture);
+        var path = $"v2/places?categories=accommodation&filter=circle:{lon},{lat},10000&bias=proximity:{lon},{lat}&limit=20&offset={request.Offset}&lang=en";
+        // This is place discovery; dates/guests do not imply availability or enter the cache key.
+        var cacheKey = "accommodation:" + path;
+        if (cache.TryGetValue(cacheKey, out AccommodationResults? cached)) return cached!;
+        using var json = await Request(path, 1, cancellationToken);
+        var features = RequiredArray(json.RootElement, "features");
+        var properties = features.EnumerateArray().Select(ReadProperty).OfType<AccommodationProperty>()
+            .DistinctBy(p => p.ProviderId).ToArray();
+        var result = new AccommodationResults(properties,
+            features.GetArrayLength() == 20 && request.Offset < 180 ? request.Offset + 20 : null);
+        // Geoapify explicitly permits Places result caching with attribution.
+        cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+        return result;
+    }
+
+    public async Task<AccommodationProperty?> Details(string providerId, CancellationToken cancellationToken)
+    {
+        using var json = await Request("v2/place-details?features=details&lang=en&id="
+            + Uri.EscapeDataString(providerId), 2, cancellationToken);
+        return RequiredArray(json.RootElement, "features").EnumerateArray().Select(ReadProperty)
+            .FirstOrDefault(p => p?.ProviderId == providerId);
+    }
+
+    private async Task<JsonDocument> Request(string path, int cost, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(options.ApiKey))
+            throw new AccommodationProviderException(503, "Accommodation discovery is not configured yet. Please try again later.");
+        cancellationToken.ThrowIfCancellationRequested();
+        budget.Reserve(cost);
+        try
+        {
+            using var response = await client.GetAsync(path + "&apiKey=" + Uri.EscapeDataString(options.ApiKey), cancellationToken);
+            if ((int)response.StatusCode == 429)
+                throw new AccommodationProviderException(429, "The accommodation provider is busy. Please try again later.");
+            if (!response.IsSuccessStatusCode)
+                throw new AccommodationProviderException(503, "Accommodation discovery is temporarily unavailable. Please try again.");
+            return JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException || ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            // Never return/log upstream exception bodies or URLs: the provider key is in its query string.
+            throw new AccommodationProviderException(503, "Accommodation discovery could not be reached. Please try again.");
+        }
+    }
+
+    private static JsonElement RequiredArray(JsonElement root, string key) =>
+        root.ValueKind == JsonValueKind.Object && root.TryGetProperty(key, out var array) && array.ValueKind == JsonValueKind.Array
+            ? array : throw new AccommodationProviderException(503, "The accommodation provider returned an unreadable response. Please try again.");
+
+    private static AccommodationProperty? ReadProperty(JsonElement feature)
+    {
+        if (feature.ValueKind != JsonValueKind.Object || !feature.TryGetProperty("properties", out var p)
+            || p.ValueKind != JsonValueKind.Object || !Coordinates(p, out var lat, out var lon)) return null;
+        var id = Text(p, "place_id");
+        if (id is null || !p.TryGetProperty("categories", out var categories) || categories.ValueKind != JsonValueKind.Array) return null;
+        var types = categories.EnumerateArray().Where(c => c.ValueKind == JsonValueKind.String)
+            .Select(c => c.GetString()!).Where(c => c == "accommodation" || c.StartsWith("accommodation.", StringComparison.Ordinal)).ToArray();
+        if (types.Length == 0) return null;
+        var type = types.FirstOrDefault(c => c.StartsWith("accommodation.", StringComparison.Ordinal))?["accommodation.".Length..].Replace('_', ' ');
+        var distance = Number(p, "distance");
+        return new AccommodationProperty(id, Text(p, "name"), type, Text(p, "formatted"), lat, lon,
+            distance >= 0 ? distance : null, Text(p, "description"));
+    }
+
+    private static bool Coordinates(JsonElement p, out double lat, out double lon)
+    {
+        var latitude = Number(p, "lat"); var longitude = Number(p, "lon");
+        lat = latitude ?? 0; lon = longitude ?? 0;
+        return latitude.HasValue && longitude.HasValue && Math.Abs(lat) <= 90 && Math.Abs(lon) <= 180;
+    }
+    private static double? Number(JsonElement p, string key) => p.ValueKind == JsonValueKind.Object
+        && p.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number
+        && value.TryGetDouble(out var number) && double.IsFinite(number) ? number : null;
+    private static string? Text(JsonElement p, string key) => p.ValueKind == JsonValueKind.Object
+        && p.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String
+        && !string.IsNullOrWhiteSpace(value.GetString()) ? value.GetString() : null;
+}

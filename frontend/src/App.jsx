@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { API_BASE_URL } from "./apiConfig";
 import DestinationExplorer from "./components/DestinationExplorer";
+import AccommodationSearch from "./components/accommodation/AccommodationSearch";
 import { Icon } from "./components/TravelWiseUI";
 import TravelWiseLogo from "./components/TravelWiseLogo";
 import LandingPage from "./components/LandingPage";
@@ -176,6 +177,7 @@ function App() {
   const navItems = [
     { id: "dashboard", label: isAdmin ? "Admin workspace" : "Your journey", icon: "dashboard" },
     { id: "explore", label: "Explore destinations", icon: "compass" },
+    { id: "accommodation", label: "Accommodation", icon: "compass" },
     { id: "trip", label: "Trip Planning & Map", icon: "compass" },
     { id: "budget", label: "Budget & Expenses", icon: "budget" },
     { id: "activities", label: "Activities", icon: "activities" },
@@ -196,6 +198,8 @@ function App() {
         return isAdmin ? "Admin workspace" : "Your journey";
       case "explore":
         return "Explore destinations";
+      case "accommodation":
+        return "Accommodation";
       case "trip":
         return "Trip Planning & GIS Route";
       case "budget":
@@ -437,7 +441,7 @@ function App() {
                 }
               }}
             />
-          ) : (activeTab === "admin" || (isAdmin && activeTab === "dashboard")) && isAdmin ? <AdminDashboard user={user}/> : activeTab === "explore" ? <DestinationExplorer onPlan={place => { setDraftDestination(place); setActiveTab("trip"); }}/> : loading ? (
+          ) : (activeTab === "admin" || (isAdmin && activeTab === "dashboard")) && isAdmin ? <AdminDashboard user={user}/> : activeTab === "explore" ? <DestinationExplorer onPlan={place => { setDraftDestination(place); setActiveTab("trip"); }}/> : activeTab === "accommodation" ? <AccommodationSearch /> : loading ? (
             <div style={{ textAlign: "center", padding: "80px 0" }}>
               <div style={{ fontSize: "2.4rem", marginBottom: "12px" }}>✈️</div>
               <h3 style={{ color: "var(--text-primary)", fontWeight: "600" }}>Loading TravelWise...</h3>

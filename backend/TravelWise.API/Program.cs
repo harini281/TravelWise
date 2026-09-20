@@ -22,6 +22,15 @@ builder.Services.AddRateLimiter(options => {
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 builder.Services.AddHttpClient("Destinations", client => client.Timeout = TimeSpan.FromSeconds(8));
+builder.Services.AddSingleton(new GeoapifyOptions(Environment.GetEnvironmentVariable("GEOAPIFY_API_KEY")));
+builder.Services.AddSingleton<GeoapifyRequestBudget>();
+builder.Services.AddHttpClient<GeoapifyService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.geoapify.com/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+})
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false })
+    .RemoveAllLoggers(); // Geoapify uses a secret query parameter; never log request URLs.
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 

@@ -1,0 +1,23 @@
+.tw-stay-search { display: grid; grid-template-columns: minmax(200px, 2fr) repeat(2, minmax(140px, 1fr)) minmax(185px, 1.2fr) auto; gap: 16px; align-items: start; padding: 24px; border: 1px solid var(--border-color); border-radius: 18px; background: var(--bg-surface); }
+.tw-stay-search label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 8px; }
+.tw-stay-search input { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-page); color: var(--text-primary); font: inherit; }
+.tw-stay-search > button { margin-top: 27px; min-height: 44px; }
+.tw-stay-search small, .tw-stay-search-status { font-size: .75rem; color: var(--text-secondary); }
+.tw-stay-destination { position: relative; min-width: 0; }
+.tw-stay-suggestions { position: absolute; left: 0; top: 70px; width: max(100%, 300px); max-width: 85vw; max-height: 300px; overflow-y: auto; z-index: 20; list-style: none; margin: 0; padding: 6px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-surface); box-shadow: 0 10px 25px #0002; }
+.tw-stay-suggestions li { padding: 12px; cursor: pointer; border-radius: 6px; overflow-wrap: anywhere; }
+.tw-stay-suggestions li:hover, .tw-stay-suggestions [aria-selected="true"] { background: var(--bg-surface-alt); color: var(--text-primary); }
+.tw-stay-guests summary { cursor: pointer; font-size: .85rem; font-weight: 600; }
+.tw-stay-guests summary span { display: block; padding: 13px 0; font-weight: 400; }
+.tw-stay-guests fieldset { margin: 0; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; }
+.tw-stay-guests fieldset > div { display: grid; grid-template-columns: 1fr 70px; align-items: center; gap: 10px; margin: 8px 0; }
+.tw-stay-explanation { color: var(--text-secondary); font-size: .85rem; line-height: 1.6; margin: 18px 0 28px; }
+.tw-stay-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 20px 0; }
+.tw-stay-card { padding: 24px; border: 1px solid var(--border-color); background: var(--bg-surface); border-radius: 16px; overflow-wrap: anywhere; }
+.tw-stay-card h2 { font-size: 1.25rem; margin: 8px 0 12px; }
+.tw-stay-card p, .tw-stay-card dl { line-height: 1.6; }
+.tw-stay-card dt { font-size: .75rem; color: var(--text-secondary); }
+.tw-stay-card dd { margin: 0 0 10px; font-size: .85rem; }
+.tw-stay-notice { font-size: .8rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px; }
+@media (max-width: 1200px) { .tw-stay-search { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tw-stay-destination { grid-column: 1 / -1; } }
+@media (max-width: 600px) { .tw-stay-search { grid-template-columns: minmax(0, 1fr); padding: 16px; } .tw-stay-search > button { margin-top: 0; } .tw-stay-results { grid-template-columns: minmax(0, 1fr); } }
