@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using TravelWise.API.Data;
 using TravelWise.API.DTOs;
 
-namespace TravelWise.API.Services;
+namespace TravelWise.API.Integrations.AIService;
 
-public class AIServiceClient
+public class AIServiceClient : IAIServiceClient
 {
     private readonly HttpClient _httpClient;
     private readonly TravelWiseDbContext _context;

@@ -33,6 +33,8 @@ builder.Services.AddHttpClient<GeoapifyService>(client =>
     .RemoveAllLoggers(); // Geoapify uses a secret query parameter; never log request URLs.
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<TravelWise.API.Services.Risk.IRiskAdvisoryService, TravelWise.API.Services.Risk.RiskAdvisoryService>();
+builder.Services.AddScoped<TravelWise.API.Services.Budget.IBudgetCalculationService, TravelWise.API.Services.Budget.BudgetCalculationService>();
 
 // ---------------------------------------------------------
 // JWT Authentication

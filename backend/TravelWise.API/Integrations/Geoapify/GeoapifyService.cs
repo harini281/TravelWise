@@ -3,42 +3,10 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using TravelWise.API.DTO;
 
-namespace TravelWise.API.Services;
-
-public sealed record GeoapifyOptions(string? ApiKey);
-public sealed class AccommodationProviderException(int statusCode, string message) : Exception(message)
-{
-    public int StatusCode { get; } = statusCode;
-}
-
-// Shared by all users in one backend process. Conservative free-tier guard, not a billing meter.
-// Provider account usage must also be monitored if other apps/instances share its key.
-public sealed class GeoapifyRequestBudget
-{
-    private readonly object gate = new();
-    private readonly Queue<DateTime> recent = new();
-    private DateOnly day;
-    private int credits;
-
-    public void Reserve(int cost)
-    {
-        lock (gate)
-        {
-            var now = DateTime.UtcNow;
-            if (day != DateOnly.FromDateTime(now)) { day = DateOnly.FromDateTime(now); credits = 0; }
-            while (recent.TryPeek(out var time) && now - time >= TimeSpan.FromSeconds(1)) recent.Dequeue();
-            if (credits + cost > 2800)
-                throw new AccommodationProviderException(429, "The accommodation search allowance is temporarily exhausted. Try again later.");
-            if (recent.Count >= 4)
-                throw new AccommodationProviderException(429, "Accommodation search is busy. Please try again in a moment.");
-            credits += cost;
-            recent.Enqueue(now);
-        }
-    }
-}
+namespace TravelWise.API.Integrations.Geoapify;
 
 public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
-    GeoapifyRequestBudget budget, IMemoryCache cache)
+    GeoapifyRequestBudget budget, IMemoryCache cache) : IGeoapifyService
 {
     public async Task<AccommodationDestination[]> Autocomplete(string query, CancellationToken cancellationToken)
     {
@@ -75,7 +43,8 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
         if (cache.TryGetValue(cacheKey, out AccommodationResults? cached)) return cached!;
         using var json = await Request(path, 1, cancellationToken);
         var features = RequiredArray(json.RootElement, "features");
-        var properties = features.EnumerateArray().Select(ReadProperty).OfType<AccommodationProperty>()
+        var rawList = features.EnumerateArray().Select(ReadProperty).ToList();
+        var properties = rawList.OfType<AccommodationProperty>()
             .DistinctBy(p => p.ProviderId).ToArray();
         var result = new AccommodationResults(properties,
             features.GetArrayLength() == 20 && request.Offset < 180 ? request.Offset + 20 : null);
@@ -178,10 +147,14 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
 
     private static AccommodationProperty? ReadProperty(JsonElement feature)
     {
-        if (feature.ValueKind != JsonValueKind.Object || !feature.TryGetProperty("properties", out var p)
-            || p.ValueKind != JsonValueKind.Object || !Coordinates(p, out var lat, out var lon)) return null;
+        if (feature.ValueKind != JsonValueKind.Object) return null;
+        if (!feature.TryGetProperty("properties", out var p)) return null;
+        if (p.ValueKind != JsonValueKind.Object) return null;
+        if (!Coordinates(p, out var lat, out var lon)) return null;
         var id = Text(p, "place_id");
-        if (id is null || !p.TryGetProperty("categories", out var categories) || categories.ValueKind != JsonValueKind.Array) return null;
+        if (id is null) return null;
+        if (!p.TryGetProperty("categories", out var categories)) return null;
+        if (categories.ValueKind != JsonValueKind.Array) return null;
         var types = categories.EnumerateArray().Where(c => c.ValueKind == JsonValueKind.String)
             .Select(c => c.GetString()!).Where(c => c == "accommodation" || c.StartsWith("accommodation.", StringComparison.Ordinal)).ToArray();
         if (types.Length == 0) return null;

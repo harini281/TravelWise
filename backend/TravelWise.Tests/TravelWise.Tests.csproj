@@ -19,6 +19,13 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="TravelWise.API.Integrations.Geoapify" />
+    <Using Include="TravelWise.API.Integrations.OpenMeteo" />
+    <Using Include="TravelWise.API.Integrations.AIService" />
+    <Using Include="TravelWise.API.DTO" />
+    <Using Include="TravelWise.API.DTOs" />
+    <Using Include="TravelWise.API.Services.Risk" />
+    <Using Include="TravelWise.API.Services.Budget" />
   </ItemGroup>
 
   <ItemGroup>

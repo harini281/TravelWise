@@ -1,9 +1,9 @@
 using System.Text.Json;
 using TravelWise.API.DTOs;
 
-namespace TravelWise.API.Services;
+namespace TravelWise.API.Integrations.OpenMeteo;
 
-public class WeatherService
+public class WeatherService : IWeatherService
 {
     private readonly HttpClient _httpClient;
 
