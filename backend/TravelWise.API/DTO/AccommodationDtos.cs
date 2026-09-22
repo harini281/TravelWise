@@ -7,10 +7,17 @@ public record AccommodationDestination(string ProviderId, string DisplayName, st
 
 // Discovery only: intentionally no price, inventory, guest rating or booking status fields.
 public record AccommodationProperty(string ProviderId, string? Name, string? Type, string? Address,
-    double Latitude, double Longitude, double? DistanceMeters, string? Description);
+    double Latitude, double Longitude, double? DistanceMeters, string? Description,
+    string[]? Amenities = null, string? Website = null, string? Phone = null,
+    string? City = null, string? Country = null, string? Postcode = null);
 
 public record AccommodationResults(AccommodationProperty[] Properties, int? NextOffset,
     string Notice = "Availability and live pricing not checked");
+
+public record NearbyPoi(string ProviderId, string? Name, string Category, string? SubCategory,
+    string? Address, double Latitude, double Longitude, double? DistanceMeters);
+
+public record NearbyPoiResults(NearbyPoi[] Places, string Category);
 
 public class AccommodationSearchRequest : IValidatableObject
 {
@@ -22,6 +29,10 @@ public class AccommodationSearchRequest : IValidatableObject
     [Range(1, 30)] public int Rooms { get; set; } = 1;
     [Range(-840, 840)] public int ClientUtcOffsetMinutes { get; set; }
     [Range(0, 180)] public int Offset { get; set; }
+    public double? CenterLatitude { get; set; }
+    public double? CenterLongitude { get; set; }
+    [Range(500, 50000)] public int? RadiusMeters { get; set; }
+    public string? Category { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -39,5 +50,9 @@ public class AccommodationSearchRequest : IValidatableObject
             yield return new ValidationResult("Check-out must be after check-in.", [nameof(CheckOut)]);
         if (Offset % 20 != 0)
             yield return new ValidationResult("Invalid result page.", [nameof(Offset)]);
+        if (CenterLatitude.HasValue && (!double.IsFinite(CenterLatitude.Value) || Math.Abs(CenterLatitude.Value) > 90))
+            yield return new ValidationResult("Center latitude must be between -90 and 90.", [nameof(CenterLatitude)]);
+        if (CenterLongitude.HasValue && (!double.IsFinite(CenterLongitude.Value) || Math.Abs(CenterLongitude.Value) > 180))
+            yield return new ValidationResult("Center longitude must be between -180 and 180.", [nameof(CenterLongitude)]);
     }
 }

@@ -149,3 +149,17 @@ test("editing search cancels stale results and mobile layout stays within viewpo
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test("property details view and back to results navigation preserve search context", async ({ page }) => {
+  await setup(page);
+  await choose(page);
+  await dates(page);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("article")).toHaveCount(1);
+  await page.getByRole("button", { name: /View Details/i }).click();
+  await expect(page.getByRole("heading", { name: "Provider property" })).toBeVisible();
+  await expect(page.getByText("Live Booking & Pricing Disclosure")).toBeVisible();
+  await expect(page.getByText("Nearby Recommendations & POIs")).toBeVisible();
+  await page.getByRole("button", { name: /Back to Results/i }).click();
+  await expect(page.getByRole("article")).toHaveCount(1);
+});

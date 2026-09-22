@@ -150,3 +150,30 @@ Client (React / Flutter)       ASP.NET Core API (:5179)       Python AI Service 
   - `Traveller`: Read and manage personal itineraries, log expenses, run AI recommendations.
   - `Reviewer`: Review pending AI workflows, evaluate safety scores, issue approvals.
   - `Admin`: Full system administration, trip overrides, and user management.
+
+---
+
+## 6. External Integrations & Accommodation Architecture (Phase 3)
+
+### Integration Topology
+```text
+React / Flutter Clients
+         │
+         │  HTTP / JSON (Bearer JWT)
+         ▼
+ASP.NET Core Web API (:5179)
+  ├── WeatherService        ──► Open-Meteo REST API (Live weather & seasonal fallbacks)
+  ├── GeoapifyService       ──► Geoapify Places & Geocoding API (Secret key server-side only)
+  └── AIServiceClient       ──► Python FastAPI Microservice (:8000)
+```
+
+### Accommodation Discovery & Nearby POI Architecture
+1. **Secure Provider Proxying**: All places discovery queries pass through `AccommodationsController` (`api/Accommodations/destinations`, `api/Accommodations/search`, `api/Accommodations/details`, `api/Accommodations/nearby`). The client never possesses or transmits `GEOAPIFY_API_KEY`.
+2. **Quota & Rate Defense**: `GeoapifyRequestBudget` limits concurrent upstream calls to 4 per second and 2,800 credits per rolling UTC day, protecting university and production allowances.
+3. **Places Caching with Attribution**: Search results and nearby POIs are cached in `IMemoryCache` for 10 minutes per query path. OpenStreetMap and Geoapify attribution notices are rendered on all discovery views.
+4. **Interactive GIS Exploration**: Results provide real geographic coordinates consumed by Leaflet components on desktop and mobile clients. "Search this area" dynamically submits updated center coordinates and radius parameters when the map is panned or zoomed.
+5. **Nearby Recommendations**: Real POIs (Restaurants, Cafés, Sights/Attractions, Public Transport, Healthcare, Shopping) are queried within a 2.5 km radius around accommodation coordinates, maintaining strict adherence to provider data without fabricated records.
+
+### Architecture Decision Records
+- [ADR-001: Agentic Multi-Agent AI Workflow Integration & Human-in-the-Loop Governance](ADR/ADR-001-agentic-ai-integration.md)
+

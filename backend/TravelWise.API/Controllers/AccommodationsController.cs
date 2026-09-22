@@ -40,6 +40,24 @@ public class AccommodationsController(GeoapifyService provider) : ControllerBase
         });
     }
 
+    [HttpGet("nearby")]
+    public async Task<IActionResult> Nearby(
+        [FromQuery] double latitude,
+        [FromQuery] double longitude,
+        [FromQuery] string? category,
+        [FromQuery] int? radiusMeters,
+        CancellationToken cancellationToken)
+    {
+        if (!double.IsFinite(latitude) || Math.Abs(latitude) > 90 ||
+            !double.IsFinite(longitude) || Math.Abs(longitude) > 180)
+            return BadRequest(new { message = "Valid latitude and longitude coordinates are required." });
+
+        if (radiusMeters.HasValue && (radiusMeters.Value < 100 || radiusMeters.Value > 20000))
+            return BadRequest(new { message = "Radius must be between 100 and 20000 meters." });
+
+        return await ProviderResult(async () => Ok(await provider.Nearby(latitude, longitude, category, radiusMeters, cancellationToken)));
+    }
+
     private async Task<IActionResult> ProviderResult(Func<Task<IActionResult>> action)
     {
         try { return await action(); }

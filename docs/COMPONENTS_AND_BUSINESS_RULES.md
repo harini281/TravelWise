@@ -112,3 +112,26 @@ Before any AI workflow output is stored:
 3. Risk and readiness classifications must strictly match validated enumeration sets.
 4. If validation succeeds, `workflow_status` becomes `AWAITING_APPROVAL` and `approval_status` becomes `PENDING`.
 5. Only an authorized user (`Reviewer` or `Admin`) can transition the status to `APPROVED`.
+
+---
+
+## 8. Accommodation Discovery & Property Exploration Domain (Phase 3)
+
+### Core Architecture & Gateway Separation
+- **Client Isolation**: React and Flutter clients never contact external geocoding or places APIs directly. All discovery traffic routes through the ASP.NET Core API (`/api/Accommodations/*`), keeping provider credentials (`GEOAPIFY_API_KEY`) secure server-side.
+- **Provider Safeguards**: The backend integrates a rate-guarding `GeoapifyRequestBudget` and memory caching (10-minute cache with OpenStreetMap attribution) to avoid exceeding free-tier allowances or leaking query credentials.
+
+### Strict "No Fake Data" Business Invariants
+1. **No Invented Pricing**: Places discovery APIs do not return live hotel room inventory or booking tariffs. The application displays transparent notices (*"Live pricing not available · Check provider for current rates"*) rather than generating speculative or mock prices.
+2. **No Fabricated Reviews or Star Ratings**: Star ratings and user review counts are omitted unless verified and supplied by an authoritative provider.
+3. **No Phantom Booking**: The system does not claim a property is reserved or booked. Accommodation discovery serves exploratory itinerary planning without misrepresenting booking status.
+4. **Honest Category Representation**: Where actual property photographs are unavailable from the provider, modern architectural category illustrations (Hotel, Resort, Guest House, Hostel, Apartment) are shown with explicit visual disclaimers.
+
+### Search & Exploration Features
+- **Worldwide Autocomplete**: Debounced locality search across global cities and regions with explicit user selection to establish precise latitude/longitude coordinates.
+- **Temporal & Guest Validation**: Check-in must be today or in the future; Check-out must strictly follow Check-in; integer constraints on adult, child, and room counts.
+- **Interactive Leaflet Map & Card Synchronization**: Real coordinates from provider results populate Leaflet markers. Hovering or clicking a card highlights the corresponding marker; clicking a marker scrolls the card into view.
+- **"Search This Area"**: When the user pans or zooms the map, an unobtrusive floating trigger enables re-querying the backend using the new map center coordinates and radius without automatic request spamming.
+- **Property Details & Nearby POI Exploration**: Selecting a property reveals provider-supported details and fetches genuine nearby POIs (Restaurants, Cafés, Attractions, Public Transport, Healthcare, Shopping) within a 2.5 km radius, mapped on the same interactive canvas.
+- **Trip Context Bridge**: When exploring accommodation while planning a trip, destination and travel dates seamlessly pre-populate from the active trip context while permitting flexible traveller modification.
+

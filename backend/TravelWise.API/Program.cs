@@ -22,7 +22,7 @@ builder.Services.AddRateLimiter(options => {
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 builder.Services.AddHttpClient("Destinations", client => client.Timeout = TimeSpan.FromSeconds(8));
-builder.Services.AddSingleton(new GeoapifyOptions(Environment.GetEnvironmentVariable("GEOAPIFY_API_KEY")));
+builder.Services.AddSingleton(new GeoapifyOptions(Environment.GetEnvironmentVariable("GEOAPIFY_API_KEY") ?? builder.Configuration["GEOAPIFY_API_KEY"]));
 builder.Services.AddSingleton<GeoapifyRequestBudget>();
 builder.Services.AddHttpClient<GeoapifyService>(client =>
 {

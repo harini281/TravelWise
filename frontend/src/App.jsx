@@ -441,7 +441,7 @@ function App() {
                 }
               }}
             />
-          ) : (activeTab === "admin" || (isAdmin && activeTab === "dashboard")) && isAdmin ? <AdminDashboard user={user}/> : activeTab === "explore" ? <DestinationExplorer onPlan={place => { setDraftDestination(place); setActiveTab("trip"); }}/> : activeTab === "accommodation" ? <AccommodationSearch /> : loading ? (
+          ) : (activeTab === "admin" || (isAdmin && activeTab === "dashboard")) && isAdmin ? <AdminDashboard user={user}/> : activeTab === "explore" ? <DestinationExplorer onPlan={place => { setDraftDestination(place); setActiveTab("trip"); }}/> : activeTab === "accommodation" ? <AccommodationSearch trip={trip} /> : loading ? (
             <div style={{ textAlign: "center", padding: "80px 0" }}>
               <div style={{ fontSize: "2.4rem", marginBottom: "12px" }}>✈️</div>
               <h3 style={{ color: "var(--text-primary)", fontWeight: "600" }}>Loading TravelWise...</h3>

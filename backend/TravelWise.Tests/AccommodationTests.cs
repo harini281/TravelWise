@@ -174,4 +174,82 @@ public class AccommodationTests
         var budget = new GeoapifyRequestBudget(); budget.Reserve(2800);
         Assert.Throws<AccommodationProviderException>(() => budget.Reserve(1));
     }
+
+    [Fact]
+    public async Task SearchThisAreaUsesCustomCoordinatesAndRadius()
+    {
+        var handler = new Handler();
+        var provider = Provider(handler);
+        var request = Valid();
+        request.CenterLatitude = 48.86;
+        request.CenterLongitude = 2.34;
+        request.RadiusMeters = 5000;
+        request.Category = "hostel";
+
+        var result = await provider.Search(request, default);
+        Assert.Single(handler.Requests);
+        var query = handler.Requests[0].Query;
+        Assert.Contains("filter=circle:2.34,48.86,5000", query);
+        Assert.Contains("bias=proximity:2.34,48.86", query);
+        Assert.Contains("categories=accommodation.hostel", query);
+    }
+
+    [Fact]
+    public async Task NearbyPoiRetrievalReturnsCategorizedPlacesAndPreservesRealData()
+    {
+        var json = """
+            {"features":[
+                {"properties":{"place_id":"restaurant-1","name":"Bistro Parisien","categories":["catering.restaurant"],"formatted":"12 Rue de Paris","lat":48.856,"lon":2.352,"distance":320}},
+                {"properties":{"place_id":"bad-poi","categories":["catering.restaurant"],"lat":999,"lon":2}},
+                {"properties":{"place_id":"missing-name","categories":["catering.restaurant"],"formatted":"Unknown Street","lat":48.857,"lon":2.353,"distance":450}}
+            ]}
+            """;
+        var handler = new Handler(json);
+        var provider = Provider(handler);
+
+        var result = await provider.Nearby(48.856, 2.352, "restaurants", 2000, default);
+        Assert.Equal("restaurants", result.Category);
+        Assert.Equal(2, result.Places.Length);
+        Assert.Equal("Bistro Parisien", result.Places[0].Name);
+        Assert.Equal("restaurant", result.Places[0].SubCategory);
+        Assert.Equal(320, result.Places[0].DistanceMeters);
+        Assert.Null(result.Places[1].Name);
+        Assert.Equal(450, result.Places[1].DistanceMeters);
+
+        var query = handler.Requests.Single().Query;
+        Assert.Contains("categories=catering.restaurant", query);
+        Assert.Contains("filter=circle:2.352,48.856,2000", query);
+    }
+
+    [Theory]
+    [InlineData("cafes", "catering.cafe")]
+    [InlineData("attractions", "tourism.sights")]
+    [InlineData("transport", "public_transport")]
+    [InlineData("healthcare", "healthcare.hospital")]
+    [InlineData("shopping", "commercial.shopping_mall")]
+    public async Task NearbySupportsAllRequiredCategories(string category, string expectedGeoCategory)
+    {
+        var handler = new Handler("{\"features\":[]}");
+        var provider = Provider(handler);
+        var result = await provider.Nearby(35.68, 139.69, category, 3000, default);
+        Assert.Equal(category, result.Category);
+        Assert.Contains(expectedGeoCategory, handler.Requests.Single().Query);
+    }
+
+    [Fact]
+    public async Task NearbyControllerValidatesCoordinatesAndRadius()
+    {
+        var controller = new AccommodationsController(Provider(new Handler("{\"features\":[]}")));
+        var badLat = await controller.Nearby(95, 10, "restaurants", 1000, default);
+        Assert.IsType<BadRequestObjectResult>(badLat);
+
+        var badLon = await controller.Nearby(10, 185, "restaurants", 1000, default);
+        Assert.IsType<BadRequestObjectResult>(badLon);
+
+        var badRadius = await controller.Nearby(10, 10, "restaurants", 50, default);
+        Assert.IsType<BadRequestObjectResult>(badRadius);
+
+        var ok = await controller.Nearby(48.85, 2.35, "restaurants", 1000, default);
+        Assert.IsType<OkObjectResult>(ok);
+    }
 }

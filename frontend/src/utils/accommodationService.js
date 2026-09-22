@@ -27,6 +27,20 @@ export function searchAccommodations(search, signal) {
   });
 }
 
+export function getPropertyDetails(providerId, signal) {
+  return request(`details?providerId=${encodeURIComponent(providerId)}`, { signal });
+}
+
+export function getNearbyPlaces({ latitude, longitude, category = "restaurants", radiusMeters = 2500 }, signal) {
+  const params = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    category: category || "restaurants",
+    radiusMeters: String(radiusMeters || 2500),
+  });
+  return request(`nearby?${params.toString()}`, { signal });
+}
+
 export function localToday() {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;

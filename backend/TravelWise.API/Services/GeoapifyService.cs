@@ -57,9 +57,19 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
     public async Task<AccommodationResults> Search(AccommodationSearchRequest request, CancellationToken cancellationToken)
     {
         var destination = request.Destination!;
-        var lat = destination.Latitude.ToString("R", CultureInfo.InvariantCulture);
-        var lon = destination.Longitude.ToString("R", CultureInfo.InvariantCulture);
-        var path = $"v2/places?categories=accommodation&filter=circle:{lon},{lat},10000&bias=proximity:{lon},{lat}&limit=20&offset={request.Offset}&lang=en";
+        var lat = (request.CenterLatitude ?? destination.Latitude).ToString("R", CultureInfo.InvariantCulture);
+        var lon = (request.CenterLongitude ?? destination.Longitude).ToString("R", CultureInfo.InvariantCulture);
+        var radius = Math.Clamp(request.RadiusMeters ?? 10000, 500, 50000);
+
+        var categoryFilter = "accommodation";
+        if (!string.IsNullOrWhiteSpace(request.Category))
+        {
+            var clean = request.Category.Trim().ToLowerInvariant().Replace(' ', '_');
+            if (clean is "hotel" or "motel" or "hostel" or "guest_house" or "apartment" or "resort" or "chalet")
+                categoryFilter = $"accommodation.{clean}";
+        }
+
+        var path = $"v2/places?categories={categoryFilter}&filter=circle:{lon},{lat},{radius}&bias=proximity:{lon},{lat}&limit=20&offset={request.Offset}&lang=en";
         // This is place discovery; dates/guests do not imply availability or enter the cache key.
         var cacheKey = "accommodation:" + path;
         if (cache.TryGetValue(cacheKey, out AccommodationResults? cached)) return cached!;
@@ -80,6 +90,64 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
             + Uri.EscapeDataString(providerId), 2, cancellationToken);
         return RequiredArray(json.RootElement, "features").EnumerateArray().Select(ReadProperty)
             .FirstOrDefault(p => p?.ProviderId == providerId);
+    }
+
+    public async Task<NearbyPoiResults> Nearby(double latitude, double longitude, string? category, int? radiusMeters, CancellationToken cancellationToken)
+    {
+        var (categoryKey, geoapifyCategories) = ResolveNearbyCategory(category);
+        var radius = Math.Clamp(radiusMeters ?? 2500, 200, 10000);
+        var lat = latitude.ToString("R", CultureInfo.InvariantCulture);
+        var lon = longitude.ToString("R", CultureInfo.InvariantCulture);
+
+        var path = $"v2/places?categories={geoapifyCategories}&filter=circle:{lon},{lat},{radius}&bias=proximity:{lon},{lat}&limit=20&lang=en";
+        var cacheKey = "nearby:" + path;
+        if (cache.TryGetValue(cacheKey, out NearbyPoiResults? cached)) return cached!;
+
+        using var json = await Request(path, 1, cancellationToken);
+        var features = RequiredArray(json.RootElement, "features");
+        var places = features.EnumerateArray().Select(f => ReadNearbyPoi(f, categoryKey)).OfType<NearbyPoi>()
+            .DistinctBy(p => p.ProviderId).ToArray();
+
+        var result = new NearbyPoiResults(places, categoryKey);
+        cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+        return result;
+    }
+
+    public static (string NormalizedCategory, string ProviderCategories) ResolveNearbyCategory(string? category)
+    {
+        return category?.Trim().ToLowerInvariant() switch
+        {
+            "cafes" or "cafe" => ("cafes", "catering.cafe"),
+            "attractions" or "sights" => ("attractions", "tourism.sights,tourism.attraction,entertainment"),
+            "transport" or "transit" => ("transport", "public_transport"),
+            "healthcare" or "hospital" => ("healthcare", "healthcare.hospital,healthcare.pharmacy"),
+            "shopping" => ("shopping", "commercial.shopping_mall,commercial.supermarket"),
+            _ => ("restaurants", "catering.restaurant")
+        };
+    }
+
+    private static NearbyPoi? ReadNearbyPoi(JsonElement feature, string defaultCategory)
+    {
+        if (feature.ValueKind != JsonValueKind.Object || !feature.TryGetProperty("properties", out var p)
+            || p.ValueKind != JsonValueKind.Object || !Coordinates(p, out var lat, out var lon)) return null;
+
+        var id = Text(p, "place_id");
+        if (id is null) return null;
+
+        string? subCategory = null;
+        if (p.TryGetProperty("categories", out var categories) && categories.ValueKind == JsonValueKind.Array)
+        {
+            subCategory = categories.EnumerateArray()
+                .Where(c => c.ValueKind == JsonValueKind.String)
+                .Select(c => c.GetString()!)
+                .FirstOrDefault(c => c.Contains('.'))?
+                .Split('.').Last().Replace('_', ' ');
+        }
+
+        var distance = Number(p, "distance");
+        var address = Text(p, "formatted") ?? Text(p, "address_line2") ?? Text(p, "street");
+        return new NearbyPoi(id, Text(p, "name"), defaultCategory, subCategory, address, lat, lon,
+            distance >= 0 ? distance : null);
     }
 
     private async Task<JsonDocument> Request(string path, int cost, CancellationToken cancellationToken)
@@ -120,7 +188,31 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
         var type = types.FirstOrDefault(c => c.StartsWith("accommodation.", StringComparison.Ordinal))?["accommodation.".Length..].Replace('_', ' ');
         var distance = Number(p, "distance");
         return new AccommodationProperty(id, Text(p, "name"), type, Text(p, "formatted"), lat, lon,
-            distance >= 0 ? distance : null, Text(p, "description"));
+            distance >= 0 ? distance : null, Text(p, "description"),
+            ExtractAmenities(p), Text(p, "website"), Text(p, "phone"),
+            Text(p, "city"), Text(p, "country"), Text(p, "postcode"));
+    }
+
+    private static string[]? ExtractAmenities(JsonElement p)
+    {
+        var list = new List<string>();
+        if (p.TryGetProperty("facilities", out var facilities) && facilities.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in facilities.EnumerateObject())
+            {
+                if (prop.Value.ValueKind == JsonValueKind.True || (prop.Value.ValueKind == JsonValueKind.String && prop.Value.GetString() == "yes"))
+                    list.Add(prop.Name.Replace('_', ' '));
+            }
+        }
+        if (p.TryGetProperty("catering", out var catering) && catering.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in catering.EnumerateObject())
+            {
+                if (prop.Value.ValueKind == JsonValueKind.True || (prop.Value.ValueKind == JsonValueKind.String && prop.Value.GetString() == "yes"))
+                    list.Add(prop.Name.Replace('_', ' '));
+            }
+        }
+        return list.Count > 0 ? list.Distinct(StringComparer.OrdinalIgnoreCase).ToArray() : null;
     }
 
     private static bool Coordinates(JsonElement p, out double lat, out double lon)
