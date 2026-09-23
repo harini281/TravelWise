@@ -190,7 +190,7 @@ export default function ForgotPasswordPage({ onNavigateLogin }) {
                   fontSize: "0.98rem",
                   fontWeight: 700,
                   cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: "0 6px 16px rgba(22, 169, 157, 0.3)",
+                  boxShadow: "0 4px 16px rgba(37, 99, 235, 0.3)",
                 }}
               >
                 {loading ? "Sending link..." : "Send Reset Link →"}

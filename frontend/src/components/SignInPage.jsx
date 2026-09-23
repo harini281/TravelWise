@@ -73,7 +73,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
         style={{
           flex: "1 1 50%",
           position: "relative",
-          background: `linear-gradient(180deg, rgba(9, 43, 58, 0.75) 0%, rgba(6, 36, 49, 0.92) 100%)`,
+          background: `linear-gradient(180deg, rgba(20, 43, 58, 0.78) 0%, rgba(15, 23, 42, 0.94) 100%), url('https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat`,
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
@@ -109,7 +109,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
         <div style={{ maxWidth: "480px", marginBlock: "auto" }}>
           <p
             style={{
-              color: "var(--teal-border)",
+              color: "#93c5fd",
               fontSize: "0.78rem",
               fontWeight: 700,
               letterSpacing: "0.15em",
@@ -131,7 +131,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
             }}
           >
             Go further.<br />
-            <em style={{ color: "#8ae0d5", fontStyle: "italic" }}>Feel closer.</em>
+            <em style={{ color: "#93c5fd", fontStyle: "italic" }}>Feel closer.</em>
           </h2>
           <p
             style={{
@@ -379,7 +379,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                 fontSize: "1rem",
                 fontWeight: 700,
                 cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: "0 8px 20px rgba(22, 169, 157, 0.35)",
+                boxShadow: "0 4px 16px rgba(37, 99, 235, 0.35)",
                 transition: "all 0.2s ease",
               }}
             >

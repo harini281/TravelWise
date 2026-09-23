@@ -177,3 +177,73 @@ ASP.NET Core Web API (:5179)
 ### Architecture Decision Records
 - [ADR-001: Agentic Multi-Agent AI Workflow Integration & Human-in-the-Loop Governance](ADR/ADR-001-agentic-ai-integration.md)
 
+---
+
+## 7. Code Organization & Design System Specification
+
+### 7.1 Layered & Domain-Oriented Backend Structure (`backend/TravelWise.API`)
+
+To uphold clean architectural standards appropriate for a university Software Engineering Frameworks project, the backend is organized into clear domain boundaries and technical layers:
+
+```text
+backend/TravelWise.API/
+├── Controllers/                 # Thin HTTP request handlers delegating to domain services
+│   ├── Accommodation/          # AccommodationsController, DestinationsController
+│   ├── Activities/             # ActivitiesController
+│   ├── Admin/                  # AdminController
+│   ├── Auth/                   # AuthController
+│   ├── Budget/                 # BudgetsController, ExpensesController
+│   ├── Readiness/              # ReadinessController
+│   ├── Risk/                   # RiskController
+│   ├── Trips/                  # TripsController, DashboardController
+│   └── Workflow/               # WorkflowController
+│
+├── Models/                      # Relational Entity Framework Core domain models
+│   ├── Activities/             # Activity.cs
+│   ├── Auth/                   # User.cs
+│   ├── Budget/                 # Budget.cs, BudgetCategory.cs, Expense.cs
+│   ├── Readiness/              # ReadinessAssessment.cs, ReadinessItem.cs, TravelRequirement.cs
+│   ├── Risk/                   # RiskAssessment.cs, WeatherData.cs
+│   ├── Trips/                  # Trip.cs
+│   └── Workflow/               # AIWorkflow.cs, WorkflowAuditLog.cs
+│
+├── DTOs/                        # API contracts and transport records separated from DB entities
+│   ├── Accommodation/          # AccommodationDtos.cs
+│   ├── Activities/             # CreateActivityDto.cs, UpdateActivityDto.cs
+│   ├── Auth/                   # AuthDtos.cs
+│   ├── Budget/                 # BudgetHealthDto.cs, TripBudgetSummaryDto.cs, BudgetDetailsDto.cs...
+│   ├── Readiness/              # ReadinessAssessmentDto.cs, CreateReadinessItemDto.cs...
+│   ├── Risk/                   # WeatherAdvisoryDtos.cs, RiskAssessmentDto.cs, WeatherResultDto.cs
+│   └── Workflow/               # AIWorkflowDtos.cs
+│
+├── Services/                    # Core business calculation engines & application services
+│   ├── Auth/                   # AuthService.cs (PBKDF2 hashing, JWT signing)
+│   ├── Budget/                 # IBudgetCalculationService.cs, BudgetCalculationService.cs
+│   ├── Email/                  # IEmailService.cs, EmailService.cs
+│   └── Risk/                   # IRiskAdvisoryService.cs, RiskAdvisoryService.cs
+│
+├── Integrations/                # Isolated external infrastructure clients & proxies
+│   ├── AIService/              # IAIServiceClient.cs, AIServiceClient.cs (LangGraph proxy)
+│   ├── Geoapify/               # IGeoapifyService.cs, GeoapifyService.cs, GeoapifyModels.cs
+│   └── OpenMeteo/              # IWeatherService.cs, WeatherService.cs
+│
+├── Data/                        # TravelWiseDbContext & database configurations
+└── Program.cs                   # Centralized DI container setup with scoped domain extensions
+```
+
+### 7.2 Professional Travel Design System (`frontend/src`)
+
+The visual design system implements a balanced, modern travel product identity:
+
+1. **Brand Palette & Tonal Hierarchy**:
+   - **Page Background**: Warm mist / soft stone (`#f4f6f8` / `#f5f7f6`).
+   - **Primary Text & Anchors**: Deep navy (`#142b3a` / `#0f172a`).
+   - **Primary Interactive Accent**: Professional travel blue (`#2563eb` / `#1d4ed8`) used for CTAs, active navigation items, links, and map selection pins.
+   - **Semantic Status Badges**: Green is strictly reserved for positive semantic states (`#16a34a` for **HEALTHY**, **VERIFIED**, **SUCCESS**); amber (`#d97706`) for **WARNING / PENDING**; red (`#dc2626`) for **CRITICAL / REJECTED**; blue (`#2563eb`) for **ACTIVE / INFO**.
+2. **Surface & Elevation**:
+   - Clean white card surfaces (`#ffffff`) with subtle light slate borders (`#e2e8f0`).
+   - Soft, realistic box-shadows (`0 4px 14px -2px rgba(15, 23, 42, 0.06)`) with subtle hover elevation.
+3. **Imagery-Led Experiences**:
+   - Destination exploration and hero headers visually prioritize curated photography with graceful overlays.
+   - Leaflet interactive map displays high-contrast travel blue pins for selected properties and distinct muted category markers for nearby amenities.
+

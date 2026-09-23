@@ -315,7 +315,8 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
                   fontSize: "0.98rem",
                   fontWeight: 700,
                   cursor: isValid && !loading ? "pointer" : "not-allowed",
-                  boxShadow: isValid ? "0 6px 16px rgba(22, 169, 157, 0.3)" : "none",
+                  boxShadow: isValid ? "0 4px 16px rgba(37, 99, 235, 0.3)" : "none",
+                  transition: "all 0.2s ease",
                 }}
               >
                 {loading ? "Updating password..." : "Set New Password →"}

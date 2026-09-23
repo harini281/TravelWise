@@ -94,7 +94,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
             width: "80px",
             height: "80px",
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #092b3a 0%, #16a99d 100%)",
+            background: "linear-gradient(135deg, #142b3a 0%, #2563eb 100%)",
             color: "#FFFFFF",
             display: "flex",
             alignItems: "center",
@@ -102,7 +102,7 @@ export default function ProfilePage({ user, onUpdateUser }) {
             fontSize: "2.2rem",
             fontFamily: "var(--font-serif, 'Playfair Display', Georgia, serif)",
             fontWeight: 700,
-            boxShadow: "0 8px 16px rgba(22, 169, 157, 0.25)",
+            boxShadow: "0 6px 16px rgba(37, 99, 235, 0.25)",
           }}
         >
           {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
