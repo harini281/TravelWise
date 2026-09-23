@@ -189,7 +189,7 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
           <div style={{ marginBottom: "24px" }}>
             <span
               style={{
-                color: "var(--teal)",
+                color: "#2563eb",
                 fontSize: "0.76rem",
                 fontWeight: 700,
                 letterSpacing: "0.12em",
@@ -449,7 +449,7 @@ export default function SignUpPage({ onRegisterSuccess, onNavigateSignIn, onBack
               style={{
                 background: "none",
                 border: "none",
-                color: "var(--teal)",
+                color: "#2563eb",
                 fontWeight: 700,
                 fontSize: "0.9rem",
                 cursor: "pointer",

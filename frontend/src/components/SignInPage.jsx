@@ -4,6 +4,7 @@ import TravelWiseLogo from "./TravelWiseLogo";
 import { API_BASE_URL } from "../apiConfig";
 
 export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigateForgotPassword, onBackToLanding }) {
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -40,6 +41,10 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
       }
 
       const data = await response.json();
+      if (isAdminMode && data.role !== "Admin") {
+        throw new Error("This account does not have Administrator privileges. Please switch to Traveller Sign In.");
+      }
+
       onLoginSuccess({
         username: data.username,
         email: data.email,
@@ -196,18 +201,60 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
             boxShadow: "var(--shadow-lg)",
           }}
         >
+          {/* Role Mode Segmented Selector */}
+          <div style={{ display: "flex", gap: "6px", background: "#f1f5f9", padding: "4px", borderRadius: "10px", marginBottom: "24px" }}>
+            <button
+              type="button"
+              onClick={() => { setIsAdminMode(false); setError(""); }}
+              style={{
+                flex: 1,
+                padding: "8px 12px",
+                border: "none",
+                borderRadius: "8px",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                backgroundColor: !isAdminMode ? "#ffffff" : "transparent",
+                color: !isAdminMode ? "#2563eb" : "#64748b",
+                boxShadow: !isAdminMode ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              🧳 Traveller Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsAdminMode(true); setError(""); }}
+              style={{
+                flex: 1,
+                padding: "8px 12px",
+                border: "none",
+                borderRadius: "8px",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                backgroundColor: isAdminMode ? "#142b3a" : "transparent",
+                color: isAdminMode ? "#ffffff" : "#64748b",
+                boxShadow: isAdminMode ? "0 2px 6px rgba(0,0,0,0.12)" : "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              🛡️ Admin Login
+            </button>
+          </div>
+
           {/* Header */}
-          <div style={{ marginBottom: "28px" }}>
+          <div style={{ marginBottom: "24px" }}>
             <span
               style={{
-                color: "var(--teal)",
+                color: isAdminMode ? "#142b3a" : "#2563eb",
                 fontSize: "0.76rem",
                 fontWeight: 700,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
               }}
             >
-              Secure Account Access
+              {isAdminMode ? "Governance & Review" : "Traveller Portal"}
             </span>
             <h1
               style={{
@@ -219,10 +266,12 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                 letterSpacing: "-0.02em",
               }}
             >
-              Sign In
+              {isAdminMode ? "Administrator Access" : "Sign In"}
             </h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem", margin: 0 }}>
-              Enter your credentials to continue your planned journeys.
+              {isAdminMode
+                ? "Enter administrative credentials for system supervision, approvals, and review."
+                : "Enter your credentials to continue your planned journeys."}
             </p>
           </div>
 
@@ -260,14 +309,14 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                   marginBottom: "6px",
                 }}
               >
-                Email or Username
+                {isAdminMode ? "Admin Username or Email" : "Email or Username"}
               </label>
               <input
                 id="signin-identifier"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="traveller or you@example.com"
+                placeholder={isAdminMode ? "admin" : "traveller or you@example.com"}
                 required
                 style={{
                   width: "100%",
@@ -296,21 +345,23 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                 >
                   Password
                 </label>
-                <button
-                  type="button"
-                  onClick={onNavigateForgotPassword}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--teal)",
-                    fontSize: "0.82rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                >
-                  Forgot Password?
-                </button>
+                {!isAdminMode && (
+                  <button
+                    type="button"
+                    onClick={onNavigateForgotPassword}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#2563eb",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    Forgot Password?
+                  </button>
+                )}
               </div>
               <div style={{ position: "relative" }}>
                 <input
@@ -360,7 +411,7 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ accentColor: "var(--teal)" }}
+                  style={{ accentColor: "#2563eb" }}
                 />
                 Remember me on this browser
               </label>
@@ -372,41 +423,53 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
               style={{
                 width: "100%",
                 padding: "14px",
-                backgroundColor: "var(--teal)",
+                backgroundColor: isAdminMode ? "#142b3a" : "#2563eb",
                 color: "#ffffff",
                 border: "none",
                 borderRadius: "var(--radius-md)",
                 fontSize: "1rem",
                 fontWeight: 700,
                 cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 16px rgba(37, 99, 235, 0.35)",
+                boxShadow: isAdminMode ? "0 4px 16px rgba(20, 43, 58, 0.35)" : "0 4px 16px rgba(37, 99, 235, 0.35)",
                 transition: "all 0.2s ease",
               }}
             >
-              {loading ? "Signing in..." : "Sign In to TravelWise →"}
+              {loading
+                ? "Signing in..."
+                : isAdminMode
+                ? "Sign In to Admin Workspace →"
+                : "Sign In to TravelWise →"}
             </button>
           </form>
 
-          {/* Create Account Link */}
+          {/* Footer Navigation */}
           <div style={{ textAlign: "center", marginTop: "24px" }}>
-            <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-              Don&apos;t have an account yet?{" "}
-            </span>
-            <button
-              type="button"
-              onClick={onNavigateSignUp}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--teal)",
-                fontWeight: 700,
-                fontSize: "0.9rem",
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              Create Account
-            </button>
+            {isAdminMode ? (
+              <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                Admin accounts are provisioned by institution governance. Public registration is restricted to travellers.
+              </span>
+            ) : (
+              <>
+                <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+                  Don&apos;t have an account yet?{" "}
+                </span>
+                <button
+                  type="button"
+                  onClick={onNavigateSignUp}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#2563eb",
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  Create Account
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -2,24 +2,40 @@
 :root {
   color-scheme: light;
   
+  /* Standardized Global Design Tokens */
+  --color-bg: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f8fafc;
+  --color-navy: #142b3a;
+  --color-navy-dark: #0f172a;
+  --color-text: #142b3a;
+  --color-text-muted: #64748b;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #eff6ff;
+  --color-border: #e2e8f0;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
   /* Primary Text & Structural Anchors */
-  --ink: #142b3a;
-  --text-primary: #142b3a;
+  --ink: var(--color-navy);
+  --text-primary: var(--color-text);
   --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-muted: var(--color-text-muted);
   --text-on-primary: #ffffff;
   --text-on-dark: #ffffff;
   --text-on-teal: #ffffff;
 
   /* Primary Interactive Accent: Professional Travel Blue */
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --primary-light: var(--color-primary-light);
   --primary-border: #bfdbfe;
 
-  --teal: #2563eb;
-  --teal-hover: #1d4ed8;
-  --teal-light: #eff6ff;
+  --teal: var(--color-primary);
+  --teal-hover: var(--color-primary-hover);
+  --teal-light: var(--color-primary-light);
   --teal-border: #bfdbfe;
 
   --secondary: #0ea5e9;

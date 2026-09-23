@@ -237,8 +237,8 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                       style={{
                         padding: "18px 16px",
                         borderRadius: "12px",
-                        border: selected ? "2px solid #0D9488" : "1px solid #E2E8F0",
-                        backgroundColor: selected ? "rgba(13, 148, 136, 0.05)" : "#FFFFFF",
+                        border: selected ? "2px solid #2563eb" : "1px solid #E2E8F0",
+                        backgroundColor: selected ? "rgba(37, 99, 235, 0.05)" : "#FFFFFF",
                         cursor: "pointer",
                         transition: "all 0.15s",
                         position: "relative",
@@ -247,7 +247,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
                         <span style={{ fontSize: "1.6rem" }}>{item.icon}</span>
                         {selected && (
-                          <span style={{ color: "#0D9488", fontWeight: "bold", fontSize: "1.1rem" }}>✓</span>
+                          <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "1.1rem" }}>✓</span>
                         )}
                       </div>
                       <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-secondary)", margin: "0 0 4px" }}>
@@ -282,8 +282,8 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                       style={{
                         padding: "12px 14px",
                         borderRadius: "10px",
-                        border: selected ? "2px solid #0D9488" : "1px solid #E2E8F0",
-                        backgroundColor: selected ? "rgba(13, 148, 136, 0.08)" : "#FFFFFF",
+                        border: selected ? "2px solid #2563eb" : "1px solid #E2E8F0",
+                        backgroundColor: selected ? "rgba(37, 99, 235, 0.08)" : "#FFFFFF",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
@@ -292,7 +292,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                       }}
                     >
                       <span style={{ fontSize: "1.2rem" }}>{item.icon}</span>
-                      <span style={{ fontSize: "0.88rem", fontWeight: selected ? 700 : 500, color: selected ? "#0D9488" : "#334155" }}>
+                      <span style={{ fontSize: "0.88rem", fontWeight: selected ? 700 : 500, color: selected ? "#2563eb" : "#334155" }}>
                         {item.label}
                       </span>
                     </div>
@@ -318,7 +318,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                       style={{
                         padding: "16px 20px",
                         borderRadius: "12px",
-                        border: selected ? "2px solid #0D9488" : "1px solid #E2E8F0",
+                        border: selected ? "2px solid #2563eb" : "1px solid #E2E8F0",
                         backgroundColor: selected ? "rgba(13, 148, 136, 0.05)" : "#FFFFFF",
                         cursor: "pointer",
                         display: "flex",
@@ -334,7 +334,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                         </h4>
                         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0 }}>{item.desc}</p>
                       </div>
-                      {selected && <span style={{ color: "#0D9488", fontWeight: "bold", fontSize: "1.2rem" }}>✓</span>}
+                      {selected && <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "1.2rem" }}>✓</span>}
                     </div>
                   );
                 })}
@@ -363,8 +363,8 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                         style={{
                           padding: "14px",
                           borderRadius: "10px",
-                          border: sel ? "2px solid #0D9488" : "1px solid #E2E8F0",
-                          backgroundColor: sel ? "rgba(13, 148, 136, 0.05)" : "#FFFFFF",
+                          border: sel ? "2px solid #2563eb" : "1px solid #E2E8F0",
+                          backgroundColor: sel ? "rgba(37, 99, 235, 0.05)" : "#FFFFFF",
                           cursor: "pointer",
                           textAlign: "center",
                         }}
@@ -396,8 +396,8 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                         style={{
                           padding: "14px",
                           borderRadius: "10px",
-                          border: sel ? "2px solid #0D9488" : "1px solid #E2E8F0",
-                          backgroundColor: sel ? "rgba(13, 148, 136, 0.05)" : "#FFFFFF",
+                          border: sel ? "2px solid #2563eb" : "1px solid #E2E8F0",
+                          backgroundColor: sel ? "rgba(37, 99, 235, 0.05)" : "#FFFFFF",
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
@@ -466,7 +466,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                 type="button"
                 onClick={() => setStep(step + 1)}
                 style={{
-                  backgroundColor: "#0F2B48",
+                  backgroundColor: "#2563eb",
                   color: "#FFFFFF",
                   border: "none",
                   padding: "11px 26px",
@@ -474,6 +474,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                   fontWeight: 700,
                   fontSize: "0.95rem",
                   cursor: "pointer",
+                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)",
                 }}
               >
                 Next →
@@ -484,7 +485,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                 disabled={saving}
                 onClick={handleFinish}
                 style={{
-                  backgroundColor: "#0D9488",
+                  backgroundColor: "#2563eb",
                   color: "#FFFFFF",
                   border: "none",
                   padding: "12px 28px",
@@ -492,7 +493,7 @@ export default function OnboardingWizard({ user, onComplete, onSkip }) {
                   fontWeight: 700,
                   fontSize: "1rem",
                   cursor: saving ? "wait" : "pointer",
-                  boxShadow: "0 4px 14px rgba(13, 148, 136, 0.35)",
+                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)",
                 }}
               >
                 {saving ? "Saving Preferences..." : "Finish Personalization ✓"}

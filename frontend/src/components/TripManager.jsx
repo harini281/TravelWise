@@ -1140,8 +1140,8 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips, draftDes
                         display: "flex",
                         alignItems: "center",
                         gap: "6px",
-                        background: "linear-gradient(180deg, #0d9488 0%, #0f766e 100%)",
-                        borderColor: "#0f766e",
+                        background: "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)",
+                        borderColor: "#1d4ed8",
                       }}
                       onClick={() => handleLiveLocationArrival(currentTrip)}
                       disabled={locationDetecting}

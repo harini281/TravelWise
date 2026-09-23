@@ -110,7 +110,7 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
             <span
               style={{
-                color: "var(--teal)",
+                color: "#2563eb",
                 fontSize: "0.76rem",
                 fontWeight: 700,
                 letterSpacing: "0.12em",
@@ -150,7 +150,7 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
                 style={{
                   width: "100%",
                   padding: "13px",
-                  backgroundColor: "var(--teal)",
+                  backgroundColor: "#2563eb",
                   color: "#ffffff",
                   border: "none",
                   borderRadius: "var(--radius-md)",
@@ -308,7 +308,7 @@ export default function ResetPasswordPage({ onNavigateLogin }) {
                 style={{
                   width: "100%",
                   padding: "13px",
-                  backgroundColor: isValid ? "var(--teal)" : "var(--border-color)",
+                  backgroundColor: isValid ? "#2563eb" : "var(--border-color)",
                   color: "#ffffff",
                   border: "none",
                   borderRadius: "var(--radius-md)",

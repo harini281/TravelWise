@@ -154,7 +154,7 @@ export default function DashboardOverview({ trip, user, onNavigate }) {
         <div className="tw-trip-hero-content">
           <div className="tw-actions">
             <span className="tw-eyebrow">YOUR SELECTED JOURNEY</span>
-            <StatusBadge tone="teal">{trip.status}</StatusBadge>
+            <StatusBadge tone="info">{trip.status}</StatusBadge>
           </div>
           <h2>{trip.destination}</h2>
           <p className="tw-trip-route">
@@ -205,7 +205,7 @@ export default function DashboardOverview({ trip, user, onNavigate }) {
                   ? "Budget not set"
                   : budget.health.toLowerCase()
               }
-              tone={budget.health === "HEALTHY" ? "teal" : "warning"}
+              tone={budget.health === "HEALTHY" ? "success" : budget.health === "OVER_BUDGET" ? "danger" : "warning"}
               detail={
                 budget.allocated > 0
                   ? `${money(budget.spent)} recorded of ${money(budget.allocated)}`

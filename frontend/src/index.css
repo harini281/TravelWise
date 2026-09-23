@@ -1,49 +1,65 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,500&display=swap');
 
 :root {
+  /* Standardized Global Design Tokens */
+  --color-bg: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f8fafc;
+  --color-navy: #142b3a;
+  --color-navy-dark: #0f172a;
+  --color-text: #142b3a;
+  --color-text-muted: #64748b;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #eff6ff;
+  --color-border: #e2e8f0;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
   /* TravelWise Balanced Professional Travel Palette */
-  --ink: #142b3a;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
+  --ink: var(--color-navy);
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --primary-light: var(--color-primary-light);
   --primary-border: #bfdbfe;
   
-  --teal: #2563eb;
-  --teal-hover: #1d4ed8;
-  --teal-light: #eff6ff;
+  --teal: var(--color-primary);
+  --teal-hover: var(--color-primary-hover);
+  --teal-light: var(--color-primary-light);
   --teal-border: #bfdbfe;
   --secondary: #0ea5e9;
   --secondary-hover: #0284c7;
   --secondary-light: #f0f9ff;
 
   /* Surfaces & Backgrounds: Warm mist / soft stone / clean neutral */
-  --mist: #f4f6f8;
-  --bg-page: #f4f6f8;
-  --bg-surface: #ffffff;
-  --bg-surface-alt: #f8fafc;
-  --bg-navy: #142b3a;
-  --bg-navy-dark: #0f172a;
-  --border-color: #e2e8f0;
+  --mist: var(--color-bg);
+  --bg-page: var(--color-bg);
+  --bg-surface: var(--color-surface);
+  --bg-surface-alt: var(--color-surface-soft);
+  --bg-navy: var(--color-navy);
+  --bg-navy-dark: var(--color-navy-dark);
+  --border-color: var(--color-border);
   --border-light: #f1f5f9;
 
   /* Text Colors */
-  --text-primary: #142b3a;
+  --text-primary: var(--color-text);
   --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-muted: var(--color-text-muted);
   --text-on-primary: #ffffff;
   --text-on-dark: #ffffff;
   --text-on-teal: #ffffff;
 
   /* Semantic Alerts strictly for badges and status */
-  --success: #16a34a;
+  --success: var(--color-success);
   --success-bg: #f0fdf4;
   --success-border: #bbf7d0;
 
-  --warning: #d97706;
+  --warning: var(--color-warning);
   --warning-bg: #fffbeb;
   --warning-border: #fde68a;
 
-  --danger: #dc2626;
+  --danger: var(--color-danger);
   --danger-bg: #fef2f2;
   --danger-border: #fecaca;
 
@@ -59,9 +75,9 @@
   --radius-lg: 16px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 3px rgba(9, 43, 58, 0.06);
-  --shadow-md: 0 6px 16px -2px rgba(9, 43, 58, 0.08), 0 2px 6px -1px rgba(9, 43, 58, 0.05);
-  --shadow-lg: 0 16px 32px -4px rgba(9, 43, 58, 0.12), 0 6px 14px -3px rgba(9, 43, 58, 0.06);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 6px 16px -2px rgba(15, 23, 42, 0.07), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 16px 32px -4px rgba(15, 23, 42, 0.1), 0 6px 14px -3px rgba(15, 23, 42, 0.05);
 }
 
 * {
@@ -167,10 +183,10 @@ body {
 }
 
 .nav-item.active {
-  background-color: #0d9488;
+  background-color: #2563eb;
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.3);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
 
 .nav-item-icon {
@@ -342,8 +358,8 @@ p, .body-text {
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
-  border-color: var(--secondary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 /* Buttons */
