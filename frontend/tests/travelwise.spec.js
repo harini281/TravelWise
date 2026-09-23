@@ -13,6 +13,10 @@ const trip = {
   userId: 7,
   startingPlace: "Lyon",
   destination: "Paris",
+  startLatitude: 45.764,
+  startLongitude: 4.8357,
+  destinationLatitude: 48.8566,
+  destinationLongitude: 2.3522,
   startDate: "2027-10-10T00:00:00Z",
   returnDate: "2027-10-13T00:00:00Z",
   travellerCount: 2,
@@ -81,12 +85,40 @@ async function setup(
         }
         return reply(state.trips);
       }
+      if (path.match(/\/api\/Trips\/\d+\/complete/) && method === "POST") {
+        const tripId = Number(path.split("/")[3]);
+        const found = state.trips.find((t) => t.id === tripId);
+        if (found) {
+          found.status = "COMPLETED";
+          found.completedAt = new Date().toISOString();
+        }
+        return reply({
+          destination: found?.destination || "Paris",
+          completedAt: new Date().toISOString(),
+          completionMethod: req.postDataJSON()?.completionMethod || "MANUAL",
+          message: "Congratulations! You completed your trip.",
+        });
+      }
       if (path.startsWith("/api/Dashboard/trip/"))
         return reply(
           snapshot(
             state.trips.find((t) => t.id === Number(path.split("/").at(-1))),
           ),
         );
+      if (path.startsWith("/api/Risk/weather/trip/"))
+        return reply({
+          temperatureC: 24,
+          windSpeedKph: 15,
+          weatherCondition: "Partly Cloudy",
+          isAvailable: true,
+          retrievedAt: new Date().toISOString(),
+        });
+      if (path.startsWith("/api/Risk/assess/trip/"))
+        return reply({
+          riskLevel: "LOW",
+          summary: "Favourable weather conditions for travel.",
+          assessedAt: new Date().toISOString(),
+        });
       if (path === "/api/Destinations/photo") return reply({ photo: null });
       if (path === "/api/Destinations/search") {
         state.searches.push(url.searchParams.get("query"));
@@ -380,3 +412,83 @@ test("authentication stays within a narrow viewport", async ({ page }) => {
     ),
   ).toBe(true);
 });
+
+test("traveller dashboard renders map with real trip coordinates and updates on trip selection", async ({ page }) => {
+  const secondTrip = {
+    ...trip,
+    id: 42,
+    startingPlace: "Kandy",
+    destination: "Ella",
+    startLatitude: 7.2906,
+    startLongitude: 80.6337,
+    destinationLatitude: 6.8667,
+    destinationLongitude: 81.0466,
+  };
+  await setup(page, { trips: [trip, secondTrip] });
+  await page.goto("/dashboard");
+
+  // Verify dashboard map card and Leaflet container are visible
+  await expect(page.getByText("Interactive Journey Route")).toBeVisible();
+  await expect(page.locator(".leaflet-container")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lyon → Paris" })).toBeVisible();
+  await expect(page.getByText("📍 From: Lyon", { exact: false })).toBeVisible();
+  await expect(page.getByText("🎯 To: Paris", { exact: false })).toBeVisible();
+});
+
+test("traveller dashboard handles safety and weather failure gracefully without stack traces", async ({ page }) => {
+  await setup(page, { trips: [trip] });
+  await page.route("**/api/Risk/**", async (route) => {
+    return route.fulfill({
+      status: 500,
+      body: "System.InvalidOperationException: Raw backend exception stack trace at InternalService.Throw()",
+    });
+  });
+
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: "Safety & Risk" }).click();
+
+  await expect(page.getByText("Safety information is temporarily unavailable.")).toBeVisible();
+  await expect(page.getByText("System.InvalidOperationException")).toHaveCount(0);
+  await expect(page.getByText("InternalService.Throw")).toHaveCount(0);
+});
+
+test("completed trip displays completed dashboard state and navigation options", async ({ page }) => {
+  const completedTrip = {
+    ...trip,
+    status: "COMPLETED",
+    completedAt: "2027-10-13T12:00:00Z",
+  };
+  await setup(page, { trips: [completedTrip] });
+  await page.goto("/dashboard");
+
+  await expect(page.getByText("✓ COMPLETED")).toBeVisible();
+  await expect(page.getByText("JOURNEY SUMMARY")).toBeVisible();
+  await expect(page.getByText("✓ Accomplished")).toBeVisible();
+
+  await expect(page.getByRole("button", { name: "Explore destinations →" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plan another trip" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open your trip →" })).toHaveCount(0);
+});
+
+test("trip completion triggers celebration modal and prevents repeat firing in session", async ({ page }) => {
+  await setup(page, { trips: [trip] });
+  await page.goto("/dashboard");
+
+  await page.getByRole("button", { name: "Trip Planning & Map" }).click();
+
+  await page.getByRole("button", { name: "🏁 Mark Trip Complete" }).click();
+  await expect(page.getByText("Confirm Trip Completion")).toBeVisible();
+  await page.getByRole("button", { name: "Yes, Complete Trip" }).click();
+
+  await expect(page.getByText("Journey complete 🎉")).toBeVisible();
+  await expect(page.getByText(/You completed your journey to Paris/)).toBeVisible();
+  await expect(page.getByText("Another journey, another story.")).toBeVisible();
+
+  await page.getByRole("button", { name: "View Trip Summary" }).click();
+  await expect(page.getByText("Journey complete 🎉")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Your journey" }).click();
+  await expect(page.getByText("Journey complete 🎉")).toHaveCount(0);
+});
+
+

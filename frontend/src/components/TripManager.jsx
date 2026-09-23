@@ -2,9 +2,10 @@ import { apiFetch as fetch } from "../apiClient";
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../apiConfig";
 import TripMapView from "./TripMapView";
+import TripCelebrationModal from "./TripCelebrationModal";
 import { geocodeLocation, fetchRoadRoute, calculateTransportRecommendations } from "../utils/mapAndRouteService";
 
-function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips, draftDestination, onConsumeDestination }) {
+function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips, draftDestination, onConsumeDestination, onNavigate }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
@@ -316,22 +317,25 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips, draftDes
 
             if (res.ok) {
               setLocationFeedback(null);
+              const updatedTrip = {
+                ...trip,
+                status: "COMPLETED",
+                completedAt: data.completedAt || new Date().toISOString(),
+                completionMethod: "LOCATION",
+              };
+              sessionStorage.setItem(`celebrated_trip_${trip.id}`, "true");
               setCelebrationData({
                 destination: data.destination || trip.destination,
                 completedAt: data.completedAt || new Date().toISOString(),
                 completionMethod: "LOCATION",
                 message: data.message || `🎉 Congratulations! You've reached ${trip.destination}.`,
+                trip: updatedTrip,
               });
               setShowCelebrationModal(true);
 
               const refreshed = await loadTrips();
-              const updatedTrip = refreshed.find((t) => t.id === trip.id) || {
-                ...trip,
-                status: "COMPLETED",
-                completedAt: data.completedAt,
-                completionMethod: "LOCATION",
-              };
-              onSelectTrip(updatedTrip);
+              const finalTrip = refreshed.find((t) => t.id === trip.id) || updatedTrip;
+              onSelectTrip(finalTrip);
               if (onRefreshTrips) onRefreshTrips();
             } else {
               // Beyond 500m or coordinate resolution issue
@@ -401,22 +405,25 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips, draftDes
       const data = await res.json();
       setShowManualConfirmModal(false);
 
+      const updated = {
+        ...tripToComplete,
+        status: "COMPLETED",
+        completedAt: data.completedAt || new Date().toISOString(),
+        completionMethod: "MANUAL",
+      };
+      sessionStorage.setItem(`celebrated_trip_${tripToComplete.id}`, "true");
       setCelebrationData({
         destination: data.destination || tripToComplete.destination,
         completedAt: data.completedAt || new Date().toISOString(),
         completionMethod: "MANUAL",
         message: data.message || `🎉 Congratulations! You've completed your trip to ${tripToComplete.destination}.`,
+        trip: updated,
       });
       setShowCelebrationModal(true);
 
       const refreshed = await loadTrips();
-      const updated = refreshed.find((t) => t.id === tripToComplete.id) || {
-        ...tripToComplete,
-        status: "COMPLETED",
-        completedAt: data.completedAt,
-        completionMethod: "MANUAL",
-      };
-      onSelectTrip(updated);
+      const finalTrip = refreshed.find((t) => t.id === tripToComplete.id) || updated;
+      onSelectTrip(finalTrip);
       if (onRefreshTrips) onRefreshTrips();
     } catch (err) {
       alert(`Could not complete trip: ${err.message}`);
@@ -1637,69 +1644,26 @@ function TripManager({ user, currentTrip, onSelectTrip, onRefreshTrips, draftDes
       {/* CELEBRATION MODAL WITH BLOOM & ANIMATION */}
       {/* ========================================================= */}
       {showCelebrationModal && celebrationData && (
-        <div className="celebration-overlay" onClick={() => setShowCelebrationModal(false)}>
-          <div
-            className="celebration-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Confetti Decorative Dots */}
-            <div className="confetti-particle" style={{ top: "12%", left: "10%", background: "#f59e0b" }}></div>
-            <div className="confetti-particle" style={{ top: "18%", right: "12%", background: "#3b82f6" }}></div>
-            <div className="confetti-particle" style={{ top: "45%", left: "6%", background: "#ec4899" }}></div>
-            <div className="confetti-particle" style={{ top: "40%", right: "8%", background: "#10b981" }}></div>
-            <div className="confetti-particle" style={{ bottom: "15%", left: "15%", background: "#8b5cf6" }}></div>
-            <div className="confetti-particle" style={{ bottom: "20%", right: "14%", background: "#f97316" }}></div>
-
-            <div style={{ fontSize: "3.5rem", marginBottom: "8px" }}>🎉</div>
-
-            <h2 style={{ fontSize: "1.75rem", fontWeight: 900, color: "var(--primary)", margin: "0 0 8px" }}>
-              Congratulations!
-            </h2>
-            <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-secondary)", margin: "0 0 16px" }}>
-              You've reached {celebrationData.destination}!
-            </h3>
-
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: "1.5", margin: "0 0 20px" }}>
-              Your travel expedition has been officially completed and recorded in TravelWise.
-            </p>
-
-            <div
-              style={{
-                backgroundColor: "var(--bg-surface)",
-                borderRadius: "var(--radius-md)",
-                padding: "12px",
-                border: "1px solid var(--border-color)",
-                marginBottom: "24px",
-                fontSize: "0.85rem",
-                textAlign: "left",
-              }}
-            >
-              <div style={{ marginBottom: "6px" }}>
-                📍 <strong>Destination:</strong> {celebrationData.destination}
-              </div>
-              <div style={{ marginBottom: "6px" }}>
-                ⏰ <strong>Arrival Time:</strong> {new Date(celebrationData.completedAt).toLocaleString()}
-              </div>
-              <div>
-                🏷️ <strong>Completion Method:</strong>{" "}
-                <span className="badge badge-success" style={{ fontSize: "0.72rem" }}>
-                  {celebrationData.completionMethod === "LOCATION" ? "📍 Live Location Arrival" : "🏁 Manual Confirmation"}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
-              <button
-                type="button"
-                className="auth-btn-primary"
-                style={{ padding: "10px 24px" }}
-                onClick={() => setShowCelebrationModal(false)}
-              >
-                View Trip Summary
-              </button>
-            </div>
-          </div>
-        </div>
+        <TripCelebrationModal
+          trip={celebrationData.trip || tripToComplete || currentTrip}
+          onClose={() => {
+            const tId = celebrationData?.trip?.id || tripToComplete?.id || currentTrip?.id;
+            if (tId) sessionStorage.setItem(`celebrated_trip_${tId}`, "true");
+            setShowCelebrationModal(false);
+          }}
+          onPlanAnother={() => {
+            const tId = celebrationData?.trip?.id || tripToComplete?.id || currentTrip?.id;
+            if (tId) sessionStorage.setItem(`celebrated_trip_${tId}`, "true");
+            setShowCelebrationModal(false);
+            setShowWizard(true);
+          }}
+          onExploreDestinations={() => {
+            const tId = celebrationData?.trip?.id || tripToComplete?.id || currentTrip?.id;
+            if (tId) sessionStorage.setItem(`celebrated_trip_${tId}`, "true");
+            setShowCelebrationModal(false);
+            if (onNavigate) onNavigate("explore");
+          }}
+        />
       )}
 
       {/* ========================================================= */}

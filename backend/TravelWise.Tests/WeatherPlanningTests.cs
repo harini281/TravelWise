@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using TravelWise.API.Controllers;
 using TravelWise.API.Data;
 using TravelWise.API.Services;
@@ -96,5 +97,22 @@ public class WeatherPlanningTests
         );
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public void RiskController_CanBeResolvedFromDependencyInjectionContainer_WithoutAmbiguousConstructors()
+    {
+        var services = new ServiceCollection();
+        services.AddDbContext<TravelWiseDbContext>(opts =>
+            opts.UseInMemoryDatabase("RiskController_DIServiceProviderTest"));
+        services.AddSingleton(new HttpClient());
+        services.AddScoped<IWeatherService, TravelWise.API.Integrations.OpenMeteo.WeatherService>();
+        services.AddScoped<IRiskAdvisoryService, TravelWise.API.Services.Risk.RiskAdvisoryService>();
+        services.AddScoped<RiskController>();
+
+        var provider = services.BuildServiceProvider();
+        var controller = provider.GetRequiredService<RiskController>();
+
+        Assert.NotNull(controller);
     }
 }

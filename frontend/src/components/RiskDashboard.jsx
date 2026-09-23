@@ -24,14 +24,13 @@ function RiskDashboard({ tripId, trip, destination, user, onNavigate }) {
 
       const response = await fetch(`${API_URL}/api/Risk/weather/trip/${tripId}`);
       if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || "Failed to load live weather information.");
+        throw new Error("Safety information is temporarily unavailable.");
       }
 
       const data = await response.json();
       setWeather(data);
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      setError("Safety information is temporarily unavailable.");
     } finally {
       setLoadingWeather(false);
     }
@@ -69,14 +68,13 @@ function RiskDashboard({ tripId, trip, destination, user, onNavigate }) {
       });
 
       if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || "Failed to assess trip risk.");
+        throw new Error("Safety information is temporarily unavailable.");
       }
 
       const data = await response.json();
       setRisk(data);
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      setError("Safety information is temporarily unavailable.");
     } finally {
       setLoadingRisk(false);
     }
@@ -226,16 +224,30 @@ function RiskDashboard({ tripId, trip, destination, user, onNavigate }) {
       {error && (
         <div
           style={{
-            backgroundColor: "var(--danger-bg)",
-            border: "1px solid var(--danger-border)",
-            color: "var(--danger)",
+            backgroundColor: "var(--danger-bg, #fef2f2)",
+            border: "1px solid var(--danger-border, #fecaca)",
+            color: "var(--danger, #dc2626)",
             padding: "12px 16px",
-            borderRadius: "var(--radius-md)",
+            borderRadius: "var(--radius-md, 8px)",
             marginBottom: "20px",
             fontSize: "0.9rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          ⚠️ {error}
+          <span>⚠️ {error}</span>
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ padding: "4px 12px", fontSize: "0.82rem" }}
+            onClick={() => {
+              loadWeather();
+              assessRisk();
+            }}
+          >
+            Retry
+          </button>
         </div>
       )}
 

@@ -129,12 +129,13 @@ function App() {
     navigateTo("login");
   };
 
-  const loadUserTrips = useCallback(async () => {
+  const loadUserTrips = useCallback(async (showFullLoader = false) => {
     tripsRequest.current?.abort();
     if (!user?.token) { setTrip(null); setTrips([]); setLoading(false); return; }
     const controller = new AbortController(); tripsRequest.current = controller;
     try {
-      setLoading(true); setError("");
+      if (showFullLoader) setLoading(true);
+      setError("");
       const response = await fetch(`${API_BASE_URL}/api/Trips`, { signal: controller.signal, headers: { Authorization: `Bearer ${user.token}` } });
       if (!response.ok) throw new Error("Your trips could not be loaded. Please try again.");
       const data = await response.json();
@@ -150,7 +151,7 @@ function App() {
   useEffect(() => {
     selectedTripId.current = null;
     setTrip(null); setTrips([]);
-    loadUserTrips();
+    loadUserTrips(true);
     return () => tripsRequest.current?.abort();
   }, [loadUserTrips]);
 
@@ -546,6 +547,7 @@ function App() {
                   onConsumeDestination={() => setDraftDestination(null)}
                   onSelectTrip={(selected) => { setTrip(selected); selectedTripId.current = selected?.id; }}
                   onRefreshTrips={loadUserTrips}
+                  onNavigate={(tab) => setActiveTab(tab)}
                 />
               )}
 

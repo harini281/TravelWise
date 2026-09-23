@@ -14,6 +14,8 @@ import {
   StatusBadge,
   WorkflowTimeline,
 } from "./TravelWiseUI";
+import TripMapView from "./TripMapView";
+import { geocodeLocation } from "../utils/mapAndRouteService";
 
 const money = (value) =>
   new Intl.NumberFormat("en-LK", {
@@ -38,6 +40,76 @@ export default function DashboardOverview({ trip, user, onNavigate }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [startCoords, setStartCoords] = useState(null);
+  const [destCoords, setDestCoords] = useState(null);
+  const [polylineCoords, setPolylineCoords] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+
+    const sLat = trip?.startLatitude;
+    const sLng = trip?.startLongitude;
+    const dLat = trip?.destinationLatitude;
+    const dLng = trip?.destinationLongitude;
+
+    let initStart = sLat != null && sLng != null ? [sLat, sLng] : null;
+    let initDest = dLat != null && dLng != null ? [dLat, dLng] : null;
+
+    setStartCoords(initStart);
+    setDestCoords(initDest);
+
+    if (trip?.routeGeometryJson) {
+      try {
+        const geo =
+          typeof trip.routeGeometryJson === "string"
+            ? JSON.parse(trip.routeGeometryJson)
+            : trip.routeGeometryJson;
+        if (geo?.coordinates && Array.isArray(geo.coordinates)) {
+          setPolylineCoords(geo.coordinates.map((c) => [c[1], c[0]]));
+        } else {
+          setPolylineCoords([]);
+        }
+      } catch {
+        setPolylineCoords([]);
+      }
+    } else {
+      setPolylineCoords([]);
+    }
+
+    async function resolveMissingCoords() {
+      if (!initStart && trip?.startingPlace) {
+        const resStart = await geocodeLocation(trip.startingPlace);
+        if (active && resStart) {
+          initStart = [resStart.latitude, resStart.longitude];
+          setStartCoords(initStart);
+        }
+      }
+      if (!initDest && trip?.destination) {
+        const resDest = await geocodeLocation(trip.destination);
+        if (active && resDest) {
+          initDest = [resDest.latitude, resDest.longitude];
+          setDestCoords(initDest);
+        }
+      }
+    }
+
+    if (!initStart || !initDest) {
+      resolveMissingCoords();
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [
+    trip?.id,
+    trip?.startingPlace,
+    trip?.destination,
+    trip?.startLatitude,
+    trip?.startLongitude,
+    trip?.destinationLatitude,
+    trip?.destinationLongitude,
+    trip?.routeGeometryJson,
+  ]);
   useEffect(() => {
     setSnapshot(null);
     setError("");
@@ -139,6 +211,8 @@ export default function DashboardOverview({ trip, user, onNavigate }) {
       )
       .slice(0, 3) || [];
   const workflow = data?.workflow;
+  const isCompleted = trip.status === "COMPLETED";
+
   return (
     <div className="tw-dashboard">
       <PageHeader
@@ -154,7 +228,9 @@ export default function DashboardOverview({ trip, user, onNavigate }) {
         <div className="tw-trip-hero-content">
           <div className="tw-actions">
             <span className="tw-eyebrow">YOUR SELECTED JOURNEY</span>
-            <StatusBadge tone="info">{trip.status}</StatusBadge>
+            <StatusBadge tone={isCompleted ? "success" : "info"}>
+              {isCompleted ? "✓ COMPLETED" : trip.status}
+            </StatusBadge>
           </div>
           <h2>{trip.destination}</h2>
           <p className="tw-trip-route">
@@ -171,22 +247,34 @@ export default function DashboardOverview({ trip, user, onNavigate }) {
             </span>
             {trip.tripType && <span>{trip.tripType}</span>}
           </div>
-          <PrimaryButton onClick={() => onNavigate("trip")}>
-            Open your trip →
-          </PrimaryButton>
+          {isCompleted ? (
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "14px" }}>
+              <PrimaryButton onClick={() => onNavigate("explore")}>
+                Explore destinations →
+              </PrimaryButton>
+              <SecondaryButton onClick={() => onNavigate("trip")}>
+                Plan another trip
+              </SecondaryButton>
+            </div>
+          ) : (
+            <PrimaryButton onClick={() => onNavigate("trip")}>
+              Open your trip →
+            </PrimaryButton>
+          )}
         </div>
         {data && (
           <div className="tw-hero-progress">
-            <span className="tw-eyebrow">PLANNING PROGRESS</span>
-            <strong>
-              {progress}
-              <small> / {checks.length}</small>
+            <span className="tw-eyebrow">
+              {isCompleted ? "JOURNEY SUMMARY" : "PLANNING PROGRESS"}
+            </span>
+            <strong style={isCompleted ? { color: "var(--success)" } : undefined}>
+              {isCompleted ? "✓ Accomplished" : `${progress} / ${checks.length}`}
             </strong>
-            <p>planning steps recorded</p>
+            <p>{isCompleted ? "All milestones complete" : "planning steps recorded"}</p>
             <progress
-              value={progress}
+              value={isCompleted ? checks.length : progress}
               max={checks.length}
-              aria-label="Planning steps recorded"
+              aria-label={isCompleted ? "All milestones complete" : "Planning steps recorded"}
             />
           </div>
         )}
@@ -238,20 +326,78 @@ export default function DashboardOverview({ trip, user, onNavigate }) {
               onClick={() => onNavigate("activities")}
             />
           </div>
+
+          {/* Interactive Journey Map */}
+          <SectionCard
+            eyebrow="Interactive Journey Route"
+            title={`${trip.startingPlace || "Origin"} → ${trip.destination}`}
+            action={
+              polylineCoords?.length > 0 ? (
+                <StatusBadge tone="info">Route Visualized</StatusBadge>
+              ) : startCoords || destCoords ? (
+                <StatusBadge tone="success">Waypoints Mapped</StatusBadge>
+              ) : (
+                <StatusBadge tone="warning">Locating Coordinates...</StatusBadge>
+              )
+            }
+          >
+            <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border-color)" }}>
+              <TripMapView
+                startCoords={startCoords}
+                destCoords={destCoords}
+                startName={trip.startingPlace || "Starting point"}
+                destName={trip.destination || "Destination"}
+                polylineCoords={polylineCoords}
+                distanceKm={trip.routeDistanceKm}
+                durationMinutes={trip.estimatedDurationMinutes}
+                height="380px"
+              />
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "12px",
+                fontSize: "0.85rem",
+                color: "var(--text-secondary)",
+                flexWrap: "wrap",
+                gap: "8px",
+              }}
+            >
+              <span>
+                📍 <strong>From:</strong> {trip.startingPlace || "Starting place not set"}{" "}
+                {startCoords ? `(${startCoords[0].toFixed(3)}, ${startCoords[1].toFixed(3)})` : ""}
+              </span>
+              <span>
+                🎯 <strong>To:</strong> {trip.destination}{" "}
+                {destCoords ? `(${destCoords[0].toFixed(3)}, ${destCoords[1].toFixed(3)})` : ""}
+              </span>
+              {trip.routeDistanceKm != null && (
+                <span>
+                  🛣️ <strong>Recorded Distance:</strong> {trip.routeDistanceKm} km
+                </span>
+              )}
+            </div>
+          </SectionCard>
+
           <div className="tw-dashboard-columns">
-            <SectionCard eyebrow="One step at a time" title="Trip progress">
+            <SectionCard
+              eyebrow={isCompleted ? "Accomplished Itinerary" : "One step at a time"}
+              title={isCompleted ? "Trip summary" : "Trip progress"}
+            >
               <ul className="tw-checklist">
                 {checks.map(([label, checked, tab]) => (
                   <li key={label}>
-                    <span className={checked ? "tw-check checked" : "tw-check"}>
-                      {checked ? "✓" : "·"}
+                    <span className={checked || isCompleted ? "tw-check checked" : "tw-check"}>
+                      {checked || isCompleted ? "✓" : "·"}
                     </span>
                     <span>{label}</span>
                     <button
                       className="tw-text-button"
                       onClick={() => onNavigate(tab)}
                     >
-                      {checked ? "Review" : "Continue"} →
+                      {checked || isCompleted ? "Review" : "Continue"} →
                     </button>
                   </li>
                 ))}

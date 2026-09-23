@@ -23,21 +23,31 @@ function TripMapView({
     const defaultCenter = [7.8731, 80.7718];
     const defaultZoom = 8;
 
+    // Reset any detached container leaflet ID
+    if (mapContainerRef.current._leaflet_id && !mapInstanceRef.current) {
+      mapContainerRef.current._leaflet_id = null;
+    }
+
     if (!mapInstanceRef.current) {
-      const map = L.map(mapContainerRef.current, {
-        center: defaultCenter,
-        zoom: defaultZoom,
-        scrollWheelZoom: false,
-      });
+      try {
+        const map = L.map(mapContainerRef.current, {
+          center: defaultCenter,
+          zoom: defaultZoom,
+          scrollWheelZoom: false,
+        });
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(map);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19,
+        }).addTo(map);
 
-      mapInstanceRef.current = map;
-      markersLayerRef.current = L.layerGroup().addTo(map);
-      routeLayerRef.current = L.layerGroup().addTo(map);
+        mapInstanceRef.current = map;
+        markersLayerRef.current = L.layerGroup().addTo(map);
+        routeLayerRef.current = L.layerGroup().addTo(map);
+      } catch (err) {
+        console.warn("Leaflet map initialization notice:", err);
+        return;
+      }
     }
 
     const map = mapInstanceRef.current;
@@ -111,19 +121,44 @@ function TripMapView({
       map.setView(pointsToFit[0], 11);
     }
 
-    const timer = setTimeout(() => {
+    const timer1 = setTimeout(() => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.invalidateSize();
       }
-    }, 200);
+    }, 100);
 
-    return () => clearTimeout(timer);
+    const timer2 = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 400);
+
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
   }, [startCoords, destCoords, startName, destName, polylineCoords]);
 
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.stop();
+          mapInstanceRef.current.remove();
+        } catch {
+          // ignore unmount transition teardown
+        }
         mapInstanceRef.current = null;
       }
     };
