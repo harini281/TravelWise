@@ -56,3 +56,11 @@ export function validateAccommodationSearch({ destination, checkIn, checkOut, ad
   if (!Number.isInteger(rooms) || rooms < 1 || rooms > 30) return "Rooms must be between 1 and 30.";
   return "";
 }
+
+export function safeProviderUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password
+      && !url.hostname.endsWith("geoapify.com") && !/apikey/i.test(url.search) ? url.href : null;
+  } catch { return null; }
+}

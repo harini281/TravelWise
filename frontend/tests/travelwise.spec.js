@@ -265,6 +265,7 @@ test("activities can be created, edited, and deleted for the selected trip", asy
   await page.locator("#act-location").fill("City museum");
   await page.locator("#act-cost").fill("1500");
   await page.locator("#act-start").fill("2027-10-10T10:00");
+  await page.locator("#act-end").fill("2027-10-10T11:30");
   await page
     .getByRole("button", { name: "Add to Itinerary", exact: true })
     .click();

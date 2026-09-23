@@ -1,7 +1,8 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SecondaryButton, LoadingState, ErrorState } from "../TravelWiseUI";
-import { getNearbyPlaces, getPropertyDetails } from "../../utils/accommodationService";
+import { getNearbyPlaces, getPropertyDetails, safeProviderUrl } from "../../utils/accommodationService";
 import AccommodationMap from "./AccommodationMap";
+import { PropertyPhoto } from "./PropertyCard";
 
 const NEARBY_CATEGORIES = [
   { key: "restaurants", label: "Restaurants", icon: "🍽️" },
@@ -18,6 +19,7 @@ export default function PropertyDetails({
   onBack,
 }) {
   const [details, setDetails] = useState(property);
+  const [detailsError, setDetailsError] = useState("");
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [activeCategory, setActiveCategory] = useState("restaurants");
   const [nearbyPois, setNearbyPois] = useState([]);
@@ -41,9 +43,7 @@ export default function PropertyDetails({
           setDetails((prev) => ({ ...prev, ...data }));
         }
       })
-      .catch(() => {
-        // Fallback gracefully to basic property if details endpoint fails
-      })
+      .catch(err => { if (!controller.signal.aborted) setDetailsError(err.message); })
       .finally(() => {
         if (!controller.signal.aborted) setLoadingDetails(false);
       });
@@ -53,7 +53,7 @@ export default function PropertyDetails({
 
   // Fetch Nearby POIs when category or property coordinates change
   useEffect(() => {
-    if (!details?.latitude || !details?.longitude) return;
+    if (!Number.isFinite(details?.latitude) || !Number.isFinite(details?.longitude)) return;
 
     pendingNearby.current?.abort();
     const controller = new AbortController();
@@ -61,6 +61,7 @@ export default function PropertyDetails({
 
     setLoadingNearby(true);
     setNearbyError("");
+    setNearbyPois([]);
     setSelectedPoi(null);
 
     getNearbyPlaces(
@@ -94,6 +95,7 @@ export default function PropertyDetails({
   }, [details?.latitude, details?.longitude, activeCategory]);
 
   const p = details || property;
+  const mapProperties = useMemo(() => [p], [p]);
   const categoryLabel = p.type
     ? p.type.charAt(0).toUpperCase() + p.type.slice(1)
     : "Accommodation";
@@ -121,9 +123,12 @@ export default function PropertyDetails({
           <div className="tw-details-header-card">
             <div className="tw-card-badge-row">
               <span className="tw-stay-badge">{categoryLabel}</span>
-              <span className="tw-verified-badge">Provider Verified</span>
+              <span className="tw-verified-badge">Provider data</span>
             </div>
 
+            {loadingDetails && <LoadingState label="Loading property details…" />}
+            {detailsError && <ErrorState message={detailsError} />}
+            <PropertyPhoto property={p} />
             <h1 className="tw-details-title">{p.name || "Unnamed Accommodation"}</h1>
 
             {p.address && (
@@ -168,10 +173,10 @@ export default function PropertyDetails({
             {(p.website || p.phone) && (
               <div className="tw-details-contact">
                 <h3>Property Contact</h3>
-                {p.website && (
+                {safeProviderUrl(p.website) && (
                   <p>
                     <strong>Website:</strong>{" "}
-                    <a href={p.website} target="_blank" rel="noreferrer">
+                    <a href={safeProviderUrl(p.website)} target="_blank" rel="noreferrer">
                       {p.website}
                     </a>
                   </p>
@@ -201,7 +206,7 @@ export default function PropertyDetails({
           <section className="tw-nearby-section" aria-label="Nearby exploration">
             <div className="tw-nearby-header">
               <h2>Nearby Recommendations & POIs</h2>
-              <p>Explore real points of interest located within 2.5 km of this property.</p>
+              <p>Up to 20 provider-returned places within 2.5 km. Distances are straight-line.</p>
             </div>
 
             {/* Category Tabs */}
@@ -271,7 +276,7 @@ export default function PropertyDetails({
             <h3 className="tw-details-map-heading">Interactive Area & POI Map</h3>
             <AccommodationMap
               isDetailsView={true}
-              properties={[p]}
+              properties={mapProperties}
               selectedProperty={p}
               nearbyPois={nearbyPois}
               selectedPoi={selectedPoi}

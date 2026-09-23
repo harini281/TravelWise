@@ -252,4 +252,23 @@ public class AccommodationTests
         var ok = await controller.Nearby(48.85, 2.35, "restaurants", 1000, default);
         Assert.IsType<OkObjectResult>(ok);
     }
+    [Fact]
+    public async Task DetailsOnlyExposeProviderSupportedAmenitiesAndSafeMedia()
+    {
+        const string json = """
+        {"features":[{"properties":{"place_id":"hotel","categories":["accommodation.hotel"],"lat":35.6,"lon":139.7,
+        "internet_access":true,"swimming_pool":false,"wheelchair":"yes","air_conditioning":true,
+        "website":"javascript:alert(1)","wiki_and_media":{"image":"https://api.geoapify.com/image?apiKey=secret"},"contact":{"phone":"provider-phone"}}}]}
+        """;
+        var property = await Provider(new Handler(json)).Details("hotel", default);
+        Assert.NotNull(property);
+        Assert.Equal(new[] { "Internet access", "Air conditioning" }, property.Amenities);
+        Assert.Null(property.Website); Assert.Null(property.ImageUrl); Assert.Equal("provider-phone", property.Phone);
+        var valid = json.Replace("javascript:alert(1)", "https://example.org/hotel")
+            .Replace("https://api.geoapify.com/image?apiKey=secret", "https://example.org/photo.jpg");
+        property = await Provider(new Handler(valid)).Details("hotel", default);
+        Assert.Equal("https://example.org/hotel", property!.Website);
+        Assert.Equal("https://example.org/photo.jpg", property.ImageUrl);
+    }
+
 }

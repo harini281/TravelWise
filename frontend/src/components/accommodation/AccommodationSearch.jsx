@@ -56,26 +56,6 @@ export default function AccommodationSearch({ trip = null }) {
 
   useEffect(() => () => pending.current?.abort(), []);
 
-  // Pre-fill trip context if available and not yet filled
-  useEffect(() => {
-    if (trip && trip.destination && !form.destination) {
-      // If trip has coordinates
-      if (Number.isFinite(trip.destinationLatitude) && Number.isFinite(trip.destinationLongitude)) {
-        setForm((prev) => ({
-          ...prev,
-          destination: {
-            providerId: `trip-${trip.id}`,
-            displayName: trip.destination,
-            latitude: trip.destinationLatitude,
-            longitude: trip.destinationLongitude,
-          },
-          checkIn: trip.startDate ? trip.startDate.slice(0, 10) : prev.checkIn,
-          checkOut: trip.endDate ? trip.endDate.slice(0, 10) : prev.checkOut,
-        }));
-      }
-    }
-  }, [trip]);
-
   function change(key, value) {
     pending.current?.abort();
     setForm((current) => ({ ...current, [key]: value }));
@@ -102,7 +82,7 @@ export default function AccommodationSearch({ trip = null }) {
     setError("");
 
     if (offset === 0) {
-      setResults(null);
+      setSelectedProperty(null);
       setNextOffset(null);
       setSubmitted(form);
     }
@@ -110,13 +90,15 @@ export default function AccommodationSearch({ trip = null }) {
     const searchPayload = {
       ...form,
       offset,
-      category: typeFilter !== "all" ? typeFilter : undefined,
+      // Filters apply to loaded results; keep pagination consistent when filters change.
     };
 
     if (customCenter) {
       searchPayload.centerLatitude = customCenter.latitude;
       searchPayload.centerLongitude = customCenter.longitude;
       setAreaSearchCenter(customCenter);
+    } else if (offset === 0) {
+      setAreaSearchCenter(null);
     }
 
     try {
@@ -171,7 +153,8 @@ export default function AccommodationSearch({ trip = null }) {
         }
 
         // Distance filter
-        if (distanceFilter !== "all" && Number.isFinite(p.distanceMeters)) {
+        if (distanceFilter !== "all") {
+          if (!Number.isFinite(p.distanceMeters)) return false;
           const maxDist = Number(distanceFilter);
           if (p.distanceMeters > maxDist) return false;
         }
@@ -396,11 +379,12 @@ export default function AccommodationSearch({ trip = null }) {
             </div>
           </div>
 
-          {results.length === 0 ? (
+          {results.length === 0 && (
             <p className="tw-no-results-msg">
               No properties were returned within 10 km. Try another nearby destination. This does not mean rooms are sold out.
             </p>
-          ) : (
+          )}
+          {(
             <div className="tw-stays-layout">
               {/* LEFT COLUMN: Useful Filters */}
               <aside className={`tw-stays-filters-column ${mobileView === "map" ? "tw-mobile-hidden" : ""}`}>
@@ -416,6 +400,7 @@ export default function AccommodationSearch({ trip = null }) {
                     </button>
                   </div>
 
+                  <p className="tw-stay-notice">Filters apply to loaded properties. Distances are from the current search centre.</p>
                   {/* Keyword Filter */}
                   <div className="tw-filter-group">
                     <label htmlFor="filter-keyword">Search by name or address</label>
@@ -544,6 +529,8 @@ export default function AccommodationSearch({ trip = null }) {
                     properties={filteredProperties}
                     selectedProperty={filteredProperties.find((p) => p.providerId === activePropertyId)}
                     hoveredPropertyId={hoveredPropertyId}
+                    onHoverProperty={setHoveredPropertyId}
+                    destination={submitted?.destination}
                     searchCenter={areaSearchCenter || submitted?.destination}
                     onSelectProperty={handleSelectPropertyFromMap}
                     onSearchArea={handleSearchThisArea}

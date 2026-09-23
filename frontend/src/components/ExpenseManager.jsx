@@ -620,13 +620,13 @@ function ExpenseManager({ tripId, trip, user, onNavigate, onExpenseChanged }) {
         <div className="tw-card" style={{ margin: 0 }}>
           <div className="tw-card-header">
             <h3 className="tw-card-title">
-              <span>🏨</span> Accommodation Planning
+              <span>🏨</span> Accommodation Budget
             </h3>
             <span className="badge badge-info">{summary?.estimatedNights ?? 3} Nights</span>
           </div>
 
           <p style={{ fontSize: "0.86rem", color: "var(--text-secondary)", marginBottom: "16px" }}>
-            Allocate lodging funds without fake inventory or fabricated hotel bookings.
+            Set lodging funds here. Use Accommodation in the navigation to explore properties and nearby places.
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", backgroundColor: "var(--bg-surface-alt)", padding: "12px", borderRadius: "var(--radius-md)", marginBottom: "16px" }}>

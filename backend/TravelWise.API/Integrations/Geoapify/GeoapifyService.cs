@@ -87,9 +87,9 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
         return category?.Trim().ToLowerInvariant() switch
         {
             "cafes" or "cafe" => ("cafes", "catering.cafe"),
-            "attractions" or "sights" => ("attractions", "tourism.sights,tourism.attraction,entertainment"),
+            "attractions" or "sights" => ("attractions", "tourism.sights,entertainment"),
             "transport" or "transit" => ("transport", "public_transport"),
-            "healthcare" or "hospital" => ("healthcare", "healthcare.hospital,healthcare.pharmacy"),
+            "healthcare" or "hospital" or "hospitals" => ("healthcare", "healthcare.hospital,healthcare.pharmacy"),
             "shopping" => ("shopping", "commercial.shopping_mall,commercial.supermarket"),
             _ => ("restaurants", "catering.restaurant")
         };
@@ -103,6 +103,10 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
         var id = Text(p, "place_id");
         if (id is null) return null;
 
+        var expectedCategories = ResolveNearbyCategory(defaultCategory).ProviderCategories.Split(',');
+        if (!p.TryGetProperty("categories", out var supplied) || supplied.ValueKind != JsonValueKind.Array
+            || !supplied.EnumerateArray().Any(c => c.ValueKind == JsonValueKind.String
+                && expectedCategories.Any(expected => c.GetString() == expected || c.GetString()!.StartsWith(expected + ".", StringComparison.Ordinal)))) return null;
         string? subCategory = null;
         if (p.TryGetProperty("categories", out var categories) && categories.ValueKind == JsonValueKind.Array)
         {
@@ -162,13 +166,19 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
         var distance = Number(p, "distance");
         return new AccommodationProperty(id, Text(p, "name"), type, Text(p, "formatted"), lat, lon,
             distance >= 0 ? distance : null, Text(p, "description"),
-            ExtractAmenities(p), Text(p, "website"), Text(p, "phone"),
-            Text(p, "city"), Text(p, "country"), Text(p, "postcode"));
+            ExtractAmenities(p), SafeUrl(Text(p, "website")),
+            p.TryGetProperty("contact", out var contact) ? Text(contact, "phone") : Text(p, "phone"),
+            Text(p, "city"), Text(p, "country"), Text(p, "postcode"),
+            p.TryGetProperty("wiki_and_media", out var media) ? SafeUrl(Text(media, "image")) : null);
     }
 
     private static string[]? ExtractAmenities(JsonElement p)
     {
         var list = new List<string>();
+        (string Key, string Label)[] fields = [("internet_access", "Internet access"), ("wheelchair", "Wheelchair access"),
+            ("swimming_pool", "Swimming pool"), ("air_conditioning", "Air conditioning"), ("dogs", "Dogs allowed")];
+        foreach (var (key, label) in fields)
+            if (p.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.True) list.Add(label);
         if (p.TryGetProperty("facilities", out var facilities) && facilities.ValueKind == JsonValueKind.Object)
         {
             foreach (var prop in facilities.EnumerateObject())
@@ -187,6 +197,11 @@ public sealed class GeoapifyService(HttpClient client, GeoapifyOptions options,
         }
         return list.Count > 0 ? list.Distinct(StringComparer.OrdinalIgnoreCase).ToArray() : null;
     }
+
+    private static string? SafeUrl(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        && uri.Scheme == "https" && string.IsNullOrEmpty(uri.UserInfo)
+        && !uri.Host.EndsWith("geoapify.com", StringComparison.OrdinalIgnoreCase)
+        && !uri.Query.Contains("apikey", StringComparison.OrdinalIgnoreCase) ? uri.AbsoluteUri : null;
 
     private static bool Coordinates(JsonElement p, out double lat, out double lon)
     {

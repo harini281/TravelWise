@@ -163,3 +163,70 @@ test("property details view and back to results navigation preserve search conte
   await page.getByRole("button", { name: /Back to Results/i }).click();
   await expect(page.getByRole("article")).toHaveCount(1);
 });
+
+
+for (const city of [destinations[0], destinations[2], { providerId: "colombo-lk", displayName: "Colombo, Sri Lanka", city: "Colombo", country: "Sri Lanka", latitude: 6.93, longitude: 79.86 }]) {
+  test(`Phase 3 maps and nearby for ${city.city} (fixtures, not live inventory)`, async ({ page }) => {
+    const calls = await setup(page);
+    await page.route("**/api/Accommodations/destinations?*", route => route.fulfill({ json: { destinations: [city] } }));
+    const stay = { ...property, latitude: city.latitude, longitude: city.longitude };
+    await page.route("**/api/Accommodations/search", route => {
+      calls.searches.push({ body: route.request().postDataJSON() });
+      return route.fulfill({ json: { properties: [stay], nextOffset: null } });
+    });
+    await page.route("**/api/Accommodations/details?*", route => route.fulfill({ json: { ...stay, amenities: ["Internet access"] } }));
+    await page.route("**/api/Accommodations/nearby?*", route => {
+      const category = new URL(route.request().url()).searchParams.get("category");
+      return route.fulfill({ json: { places: [{ providerId: category + "-poi", name: "Provider " + category, category, latitude: city.latitude + .001, longitude: city.longitude, distanceMeters: 120 }] } });
+    });
+    await page.getByRole("combobox", { name: "Destination" }).fill(city.city);
+    await page.getByRole("option", { name: city.displayName, exact: true }).click(); await dates(page);
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page.getByRole("article")).toHaveCount(1);
+    await expect(page.locator('.leaflet-marker-icon[title="Destination"]')).toHaveCount(1);
+    await page.getByRole("article").hover();
+    await expect(page.locator(".tw-map-pin-hovered")).toHaveCount(1);
+    await page.locator('.leaflet-marker-icon[title="Provider property"]').click();
+    await expect(page.getByRole("article")).toHaveClass(/tw-stay-card-selected/);
+    await page.getByRole("button", { name: "Fit visible results" }).click();
+    if (city.providerId === "paris-fr") await page.screenshot({ path: "test-results/phase3-current-desktop.png", fullPage: true });
+    await page.getByRole("button", { name: /View Details/i }).click();
+    await expect(page.locator(".tw-property-details-view")).toContainText("Internet access");
+    await expect(page.locator(".tw-property-details-view")).not.toContainText("Provider Verified");
+    for (const category of ["Restaurants", "Cafés", "Attractions", "Public Transport", "Healthcare", "Shopping"]) {
+      await page.getByRole("tab", { name: category }).click();
+      await expect(page.locator(".tw-nearby-card")).toHaveCount(1);
+      await page.locator(".tw-nearby-card").click();
+      await expect(page.locator(".tw-poi-pin-selected")).toHaveCount(1);
+    }
+    await page.getByRole("button", { name: /Back to Results/ }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(calls.searches[0].body.destination).toEqual(city);
+  });
+}
+
+test("details reports errors and zero coordinates still request nearby places", async ({ page }) => {
+  await setup(page); await choose(page); await dates(page);
+  await page.route("**/api/Accommodations/search", route => route.fulfill({ json: { properties: [{ ...property, latitude: 0, longitude: 0 }], nextOffset: null } }));
+  await page.route("**/api/Accommodations/details?*", route => route.fulfill({ status: 503, json: { message: "Details unavailable" } }));
+  await page.route("**/api/Accommodations/nearby?*", route => route.fulfill({ status: 503, json: { message: "Nearby unavailable" } }));
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("button", { name: /View Details/i }).click();
+  await expect(page.locator(".tw-property-details-view")).toContainText("Details unavailable");
+  await expect(page.locator(".tw-property-details-view")).toContainText("Nearby unavailable");
+  await expect(page.locator(".tw-poi-pin")).toHaveCount(0);
+});
+
+test("search this area sends map coordinates and keeps them for pagination", async ({ page }) => {
+  const calls = await setup(page, "pages"); await choose(page); await dates(page);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.locator('.leaflet-control-zoom-out').click();
+  await page.getByRole("button", { name: /Search this area/ }).click();
+  await expect.poll(() => calls.searches.length).toBe(2);
+  await page.getByRole("button", { name: "Load more properties" }).click();
+  await expect.poll(() => calls.searches.length).toBe(3);
+  expect(calls.searches[1].body.centerLatitude).toEqual(expect.any(Number));
+  expect(calls.searches[2].body.centerLatitude).toBe(calls.searches[1].body.centerLatitude);
+  expect(calls.searches[2].body.centerLongitude).toBe(calls.searches[1].body.centerLongitude);
+});

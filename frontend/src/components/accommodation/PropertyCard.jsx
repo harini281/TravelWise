@@ -1,4 +1,15 @@
-﻿export default function PropertyCard({
+import { useState } from "react";
+import { safeProviderUrl } from "../../utils/accommodationService";
+
+export function PropertyPhoto({ property }) {
+  const [failed, setFailed] = useState(null);
+  const url = safeProviderUrl(property.imageUrl);
+  if (!url || url === failed) return null;
+  return <img className="tw-property-photo" src={url} alt={property.name || "Property"} loading="lazy"
+    referrerPolicy="no-referrer" onError={() => setFailed(url)} />;
+}
+
+export default function PropertyCard({
   property,
   isSelected = false,
   isHovered = false,
@@ -29,10 +40,13 @@
       onMouseEnter={() => onMouseEnter && onMouseEnter(property.providerId)}
       onMouseLeave={() => onMouseLeave && onMouseLeave()}
       onClick={() => onSelect && onSelect(property)}
+      onFocus={() => onMouseEnter?.(property.providerId)}
+      onBlur={() => onMouseLeave?.()}
+      onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSelect?.(property); } }}
       tabIndex={0}
       role="article"
-      aria-selected={isSelected}
     >
+      <PropertyPhoto property={property} />
       {/* Visual Category Illustration Banner */}
       <div className="tw-card-visual-header">
         <div className="tw-visual-icon-box">{icon}</div>

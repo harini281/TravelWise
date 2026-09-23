@@ -9,7 +9,7 @@ public record AccommodationDestination(string ProviderId, string DisplayName, st
 public record AccommodationProperty(string ProviderId, string? Name, string? Type, string? Address,
     double Latitude, double Longitude, double? DistanceMeters, string? Description,
     string[]? Amenities = null, string? Website = null, string? Phone = null,
-    string? City = null, string? Country = null, string? Postcode = null);
+    string? City = null, string? Country = null, string? Postcode = null, string? ImageUrl = null);
 
 public record AccommodationResults(AccommodationProperty[] Properties, int? NextOffset,
     string Notice = "Availability and live pricing not checked");

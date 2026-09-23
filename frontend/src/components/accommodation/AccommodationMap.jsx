@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 export default function AccommodationMap({
   properties = [],
+  destination = null,
+  onHoverProperty,
   selectedProperty = null,
   hoveredPropertyId = null,
   onSelectProperty,
@@ -24,17 +27,22 @@ export default function AccommodationMap({
   const [showSearchAreaBtn, setShowSearchAreaBtn] = useState(false);
   const mapMovedCenterRef = useRef(null);
   const initialCenterRef = useRef(searchCenter);
+  const callbacks = useRef({});
+  useEffect(() => { callbacks.current = { onSelectProperty, onSelectPoi, onHoverProperty }; });
 
   // Initialize Map
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const initialLat = searchCenter?.latitude ?? (properties[0]?.latitude ?? 6.9271);
-    const initialLon = searchCenter?.longitude ?? (properties[0]?.longitude ?? 79.8612);
+    const initialLat = searchCenter?.latitude ?? (properties[0]?.latitude ?? 0);
+    const initialLon = searchCenter?.longitude ?? (properties[0]?.longitude ?? 0);
 
     const map = L.map(containerRef.current, {
       center: [initialLat, initialLon],
       zoom: 13,
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
       zoomControl: true,
       scrollWheelZoom: true,
     });
@@ -48,22 +56,19 @@ export default function AccommodationMap({
     poiLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(containerRef.current);
+
     // Detect pan/zoom for "Search this area"
     map.on("moveend", () => {
       const center = map.getCenter();
       mapMovedCenterRef.current = { latitude: center.lat, longitude: center.lng, zoom: map.getZoom() };
       
-      if (!isDetailsView && initialCenterRef.current) {
-        const dLat = Math.abs(center.lat - initialCenterRef.current.latitude);
-        const dLon = Math.abs(center.lng - initialCenterRef.current.longitude);
-        // If moved more than ~0.015 degrees (~1.6 km)
-        if (dLat > 0.015 || dLon > 0.015) {
-          setShowSearchAreaBtn(true);
-        }
-      }
+      if (!isDetailsView) setShowSearchAreaBtn(true);
     });
 
     return () => {
+      observer.disconnect();
       try {
         map.off();
         map.stop();
@@ -99,9 +104,9 @@ export default function AccommodationMap({
 
     const boundsPoints = [];
 
-    validProps.forEach((prop) => {
-      const isSelected = selectedProperty?.providerId === prop.providerId;
-      const isHovered = hoveredPropertyId === prop.providerId;
+    validProps.slice(0, 200).forEach((prop) => {
+      const isSelected = false;
+      const isHovered = false;
 
       const icon = L.divIcon({
         className: "tw-leaflet-marker-wrap",
@@ -113,7 +118,7 @@ export default function AccommodationMap({
         popupAnchor: [0, -36],
       });
 
-      const marker = L.marker([prop.latitude, prop.longitude], { icon });
+      const marker = L.marker([prop.latitude, prop.longitude], { icon, title: prop.name || "Accommodation" });
       marker.bindPopup(`
         <div class="tw-map-popup">
           <strong>${escapeHtml(prop.name || "Accommodation")}</strong>
@@ -124,9 +129,11 @@ export default function AccommodationMap({
       `);
 
       marker.on("click", () => {
-        if (onSelectProperty) onSelectProperty(prop);
+        callbacks.current.onSelectProperty?.(prop);
       });
 
+      marker.on("mouseover", () => callbacks.current.onHoverProperty?.(prop.providerId));
+      marker.on("mouseout", () => callbacks.current.onHoverProperty?.(null));
       marker.addTo(layer);
       markerMapRef.current.set(prop.providerId, marker);
       boundsPoints.push([prop.latitude, prop.longitude]);
@@ -136,12 +143,12 @@ export default function AccommodationMap({
     if (!isDetailsView && boundsPoints.length > 0) {
       try {
         const bounds = L.latLngBounds(boundsPoints);
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15, animate: false });
       } catch {
         // ignore bounds fitting errors
       }
     }
-  }, [properties, selectedProperty, hoveredPropertyId, isDetailsView]);
+  }, [properties, isDetailsView]);
 
   // Update Nearby POI Markers
   useEffect(() => {
@@ -168,10 +175,10 @@ export default function AccommodationMap({
       shopping: "🛍️",
     };
 
-    nearbyPois.forEach((poi) => {
+    nearbyPois.slice(0, 20).forEach((poi) => {
       if (!Number.isFinite(poi.latitude) || !Number.isFinite(poi.longitude)) return;
 
-      const isSelected = selectedPoi?.providerId === poi.providerId;
+      const isSelected = false;
       const emoji = poiIcons[poi.category] || "📍";
 
       const icon = L.divIcon({
@@ -195,7 +202,7 @@ export default function AccommodationMap({
       `);
 
       marker.on("click", () => {
-        if (onSelectPoi) onSelectPoi(poi);
+        callbacks.current.onSelectPoi?.(poi);
       });
 
       marker.addTo(layer);
@@ -206,12 +213,12 @@ export default function AccommodationMap({
     if (boundsPoints.length > 1) {
       try {
         const bounds = L.latLngBounds(boundsPoints);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: false });
       } catch {
         // ignore
       }
     }
-  }, [nearbyPois, selectedPoi, isDetailsView, selectedProperty]);
+  }, [nearbyPois, isDetailsView, selectedProperty]);
 
   // Center on selected property if in details view
   useEffect(() => {
@@ -226,6 +233,34 @@ export default function AccommodationMap({
       }
     }
   }, [isDetailsView, selectedProperty]);
+
+  useEffect(() => {
+    for (const [id, marker] of markerMapRef.current) {
+      const pin = marker.getElement()?.querySelector(".tw-map-pin");
+      pin?.classList.toggle("tw-map-pin-selected", id === selectedProperty?.providerId);
+      pin?.classList.toggle("tw-map-pin-hovered", id === hoveredPropertyId);
+      marker.setZIndexOffset(id === hoveredPropertyId || id === selectedProperty?.providerId ? 1000 : 0);
+    }
+    for (const [id, marker] of poiMarkerMapRef.current)
+      marker.getElement()?.querySelector(".tw-poi-pin")?.classList.toggle("tw-poi-pin-selected", id === selectedPoi?.providerId);
+  }, [properties, nearbyPois, selectedProperty, hoveredPropertyId, selectedPoi]);
+
+  useEffect(() => {
+    if (!destination || !mapRef.current) return;
+    const marker = L.marker([destination.latitude, destination.longitude], { title: "Destination", zIndexOffset: -1000, icon: L.divIcon({
+      className: "tw-leaflet-marker-wrap", html: '<div class="tw-map-pin">D</div>', iconSize: [36, 36], iconAnchor: [18, 36]
+    }) }).addTo(mapRef.current);
+    const label = document.createElement("span"); label.textContent = destination.displayName;
+    marker.bindTooltip(label);
+    return () => marker.remove();
+  }, [destination]);
+
+  function fitVisibleResults() {
+    const points = [...properties, ...nearbyPois].filter(p => Number.isFinite(p.latitude) && Number.isFinite(p.longitude))
+      .map(p => [p.latitude, p.longitude]);
+    if (!points.length && searchCenter) points.push([searchCenter.latitude, searchCenter.longitude]);
+    if (points.length) mapRef.current?.fitBounds(points, { padding: [40, 40], maxZoom: 15, animate: false });
+  }
 
   function handleSearchThisArea() {
     setShowSearchAreaBtn(false);
@@ -243,6 +278,7 @@ export default function AccommodationMap({
 
   return (
     <div className="tw-map-wrapper" style={{ height }}>
+      <button className="tw-map-fit-control" type="button" onClick={fitVisibleResults}>Fit visible results</button>
       <div ref={containerRef} className="tw-map-container" />
       {showSearchAreaBtn && (
         <div className="tw-map-floating-controls">
