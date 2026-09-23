@@ -49,6 +49,8 @@ function App() {
 
   const getInitialRoute = () => {
     const path = window.location.pathname.toLowerCase();
+    if (path === "/admin/login") return "admin-login";
+    if (path === "/admin" || path === "/admin/dashboard") return "admin-dashboard";
     if (path === "/login" || path === "/signin") return "login";
     if (path === "/register" || path === "/signup") return "register";
     if (path === "/forgot-password") return "forgot-password";
@@ -66,14 +68,17 @@ function App() {
     setCurrentRoute(route);
     if (route === "profile") setActiveTab("profile");
     if (route === "dashboard") setActiveTab("dashboard");
+    if (route === "admin-dashboard") setActiveTab("admin");
     const pathMap = {
       landing: "/",
       login: "/login",
+      "admin-login": "/admin/login",
       register: "/register",
       "forgot-password": "/forgot-password",
       "reset-password": "/reset-password",
       onboarding: "/onboarding",
       dashboard: "/dashboard",
+      "admin-dashboard": "/admin/dashboard",
       profile: "/profile",
     };
     const targetPath = (pathMap[route] || "/") + search;
@@ -88,6 +93,7 @@ function App() {
       setCurrentRoute(route);
       if (route === "profile") setActiveTab("profile");
       if (route === "dashboard") setActiveTab("dashboard");
+      if (route === "admin-dashboard") setActiveTab("admin");
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -101,7 +107,10 @@ function App() {
       // ignore
     }
 
-    if (userData.role === "Traveller" && !userData.hasCompletedOnboarding) {
+    if (userData.role === "Admin") {
+      setActiveTab("admin");
+      navigateTo("admin-dashboard");
+    } else if (userData.role === "Traveller" && !userData.hasCompletedOnboarding) {
       navigateTo("onboarding");
     } else {
       navigateTo("dashboard");
@@ -241,16 +250,73 @@ function App() {
     );
   }
 
-  // ROUTE: Sign In / Login Page
-  if (currentRoute === "login") {
+  // ROUTE: Sign In / Login Page (Traveller or Admin)
+  if (currentRoute === "login" || currentRoute === "admin-login") {
+    if (currentRoute === "admin-login" && user?.role === "Traveller") {
+      return (
+        <div className="tw-auth-layout" style={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", backgroundColor: "var(--mist)", padding: "24px" }}>
+          <div className="tw-card" style={{ maxWidth: "480px", width: "100%", padding: "36px", textAlign: "center", borderLeft: "4px solid var(--danger)", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ fontSize: "2.4rem", marginBottom: "16px" }}>🛡️ ⛔</div>
+            <h2 style={{ color: "var(--danger)", margin: "0 0 12px", fontFamily: "var(--font-serif)" }}>Administrator Access Denied</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: "1.6", marginBottom: "24px" }}>
+              You are currently signed in as traveller <strong>{user.username}</strong> ({user.email}). This account does not have administrator privileges.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button type="button" className="btn btn-outline" onClick={handleLogout}>
+                Sign Out
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => navigateTo("dashboard")}>
+                Return to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentRoute === "admin-login" && user?.role === "Admin") {
+      navigateTo("admin-dashboard");
+      return null;
+    }
+
     return (
       <SignInPage
+        initialAdminMode={currentRoute === "admin-login"}
         onLoginSuccess={handleLogin}
         onNavigateSignUp={() => navigateTo("register")}
         onNavigateForgotPassword={() => navigateTo("forgot-password")}
         onBackToLanding={() => navigateTo("landing")}
       />
     );
+  }
+
+  // ROUTE: Admin Dashboard Guard
+  if (currentRoute === "admin-dashboard") {
+    if (!user) {
+      navigateTo("admin-login");
+      return null;
+    }
+    if (user.role !== "Admin") {
+      return (
+        <div className="tw-auth-layout" style={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", backgroundColor: "var(--mist)", padding: "24px" }}>
+          <div className="tw-card" style={{ maxWidth: "480px", width: "100%", padding: "36px", textAlign: "center", borderLeft: "4px solid var(--danger)", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ fontSize: "2.4rem", marginBottom: "16px" }}>🛡️ ⛔</div>
+            <h2 style={{ color: "var(--danger)", margin: "0 0 12px", fontFamily: "var(--font-serif)" }}>Access Denied</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: "1.6", marginBottom: "24px" }}>
+              Administrator privileges required. Account <strong>{user.username}</strong> with role <strong>{user.role}</strong> cannot access administrative routes.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button type="button" className="btn btn-outline" onClick={handleLogout}>
+                Sign Out
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => navigateTo("dashboard")}>
+                Return to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   // ROUTE: Registration Page

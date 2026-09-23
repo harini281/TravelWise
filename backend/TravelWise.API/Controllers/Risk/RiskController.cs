@@ -20,18 +20,11 @@ public class RiskController : ControllerBase
     public RiskController(
         TravelWiseDbContext context,
         IWeatherService weatherService,
-        IRiskAdvisoryService? riskAdvisoryService = null)
+        IRiskAdvisoryService riskAdvisoryService)
     {
         _context = context;
         _weatherService = weatherService;
-        _riskAdvisoryService = riskAdvisoryService ?? new RiskAdvisoryService();
-    }
-
-    public RiskController(
-        TravelWiseDbContext context,
-        WeatherService weatherService)
-        : this(context, (IWeatherService)weatherService, new RiskAdvisoryService())
-    {
+        _riskAdvisoryService = riskAdvisoryService;
     }
 
     // Retained for type compatibility with existing tests and clients

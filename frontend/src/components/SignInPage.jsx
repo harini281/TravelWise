@@ -3,8 +3,8 @@ import { useState } from "react";
 import TravelWiseLogo from "./TravelWiseLogo";
 import { API_BASE_URL } from "../apiConfig";
 
-export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigateForgotPassword, onBackToLanding }) {
-  const [isAdminMode, setIsAdminMode] = useState(false);
+export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigateForgotPassword, onBackToLanding, initialAdminMode = false }) {
+  const [isAdminMode, setIsAdminMode] = useState(initialAdminMode);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -437,8 +437,8 @@ export default function SignInPage({ onLoginSuccess, onNavigateSignUp, onNavigat
               {loading
                 ? "Signing in..."
                 : isAdminMode
-                ? "Sign In to Admin Workspace →"
-                : "Sign In to TravelWise →"}
+                ? "Sign In to Admin Workspace"
+                : "Sign In to TravelWise"}
             </button>
           </form>
 

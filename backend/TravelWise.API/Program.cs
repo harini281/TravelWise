@@ -35,6 +35,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<TravelWise.API.Services.Risk.IRiskAdvisoryService, TravelWise.API.Services.Risk.RiskAdvisoryService>();
 builder.Services.AddScoped<TravelWise.API.Services.Budget.IBudgetCalculationService, TravelWise.API.Services.Budget.BudgetCalculationService>();
+builder.Services.AddScoped<TravelWise.API.Services.Auth.AdminProvisioningService>();
 
 // ---------------------------------------------------------
 // JWT Authentication
@@ -155,7 +156,7 @@ builder.Services.AddCors(options =>
 // ---------------------------------------------------------
 
 builder.Services
-    .AddHttpClient<WeatherService>(client =>
+    .AddHttpClient<TravelWise.API.Integrations.OpenMeteo.IWeatherService, TravelWise.API.Integrations.OpenMeteo.WeatherService>(client =>
     {
         client.Timeout = TimeSpan.FromSeconds(30);
 
@@ -170,6 +171,9 @@ builder.Services
             // for Open-Meteo requests.
             UseProxy = false
         });
+
+builder.Services.AddScoped<TravelWise.API.Integrations.OpenMeteo.WeatherService>(sp =>
+    (TravelWise.API.Integrations.OpenMeteo.WeatherService)sp.GetRequiredService<TravelWise.API.Integrations.OpenMeteo.IWeatherService>());
 
 
 // ---------------------------------------------------------
@@ -245,6 +249,17 @@ using (var scope = app.Services.CreateScope())
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         logger.LogWarning(ex, "Schema initialization check completed.");
+    }
+
+    try
+    {
+        var adminProvisioning = scope.ServiceProvider.GetRequiredService<TravelWise.API.Services.Auth.AdminProvisioningService>();
+        await adminProvisioning.ProvisionInitialAdminAsync();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Initial administrator provisioning check completed with notice.");
     }
 }
 

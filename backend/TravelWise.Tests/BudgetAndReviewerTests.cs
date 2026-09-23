@@ -23,11 +23,16 @@ public class BudgetAndReviewerTests
         return new TravelWiseDbContext(options);
     }
 
+    private BudgetsController CreateBudgetsController(TravelWiseDbContext context)
+    {
+        return new BudgetsController(context, new BudgetCalculationService(context));
+    }
+
     [Fact]
     public async Task GetTripBudgetSummary_ZeroBudget_ReturnsHealthUnset()
     {
         using var context = CreateInMemoryDbContext("BudgetZeroDb");
-        var controller = new BudgetsController(context);
+        var controller = CreateBudgetsController(context);
 
         var trip = new Trip
         {
@@ -56,7 +61,7 @@ public class BudgetAndReviewerTests
     public async Task GetTripBudgetSummary_CalculatesSafeToSpend_Correctly()
     {
         using var context = CreateInMemoryDbContext("BudgetSafeSpendDb");
-        var controller = new BudgetsController(context);
+        var controller = CreateBudgetsController(context);
 
         var trip = new Trip
         {
@@ -106,7 +111,7 @@ public class BudgetAndReviewerTests
     public async Task UpdateFoodPlan_UpdatesTripAndCategoryAllocations()
     {
         using var context = CreateInMemoryDbContext("BudgetFoodPlanDb");
-        var controller = new BudgetsController(context);
+        var controller = CreateBudgetsController(context);
 
         var trip = new Trip
         {

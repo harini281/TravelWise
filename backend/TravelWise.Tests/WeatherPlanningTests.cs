@@ -21,8 +21,9 @@ public class WeatherPlanningTests
     private RiskController CreateRiskController(TravelWiseDbContext db)
     {
         var httpClient = new HttpClient();
-        var weatherService = new WeatherService(httpClient);
-        return new RiskController(db, weatherService);
+        var weatherService = new TravelWise.API.Integrations.OpenMeteo.WeatherService(httpClient);
+        var riskAdvisoryService = new TravelWise.API.Services.Risk.RiskAdvisoryService();
+        return new RiskController(db, weatherService, riskAdvisoryService);
     }
 
     [Fact]

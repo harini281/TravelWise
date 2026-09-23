@@ -16,10 +16,10 @@ public class BudgetsController : ControllerBase
 
     public BudgetsController(
         TravelWiseDbContext context,
-        IBudgetCalculationService? budgetCalculationService = null)
+        IBudgetCalculationService budgetCalculationService)
     {
         _context = context;
-        _budgetCalculationService = budgetCalculationService ?? new BudgetCalculationService(context);
+        _budgetCalculationService = budgetCalculationService;
     }
 
     [HttpPost]

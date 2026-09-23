@@ -6,6 +6,18 @@ import { API_BASE_URL } from "../apiConfig";
 function AdminDashboard({ user }) {
   const [activeTab, setActiveTab] = useState("overview");
 
+  if (user?.role !== "Admin") {
+    return (
+      <div className="tw-card" style={{ padding: "40px", textAlign: "center", borderLeft: "4px solid var(--danger)", margin: "32px auto", maxWidth: "600px" }}>
+        <div style={{ fontSize: "2.4rem", marginBottom: "12px" }}>🛡️ ⛔</div>
+        <h2 style={{ color: "var(--danger)", marginBottom: "12px" }}>Administrator Privileges Required</h2>
+        <p style={{ color: "var(--text-secondary)", lineHeight: "1.6" }}>
+          This workspace is strictly reserved for verified system administrators. Your account does not have authorization to view or manage governance data.
+        </p>
+      </div>
+    );
+  }
+
   // Overview / Stats State
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);

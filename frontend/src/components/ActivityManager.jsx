@@ -128,16 +128,22 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
 
   const destination = trip?.destination || "your destination";
 
+  const toLocalIsoString = (d) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((previous) => {
       const updated = { ...previous, [name]: value };
       // Auto-compute scheduledEnd if scheduledStart and durationMinutes are set
-      if (name === "scheduledStart" && value && updated.durationMinutes) {
+      if (name === "scheduledStart" && value) {
         try {
           const s = new Date(value);
-          const e = new Date(s.getTime() + Number(updated.durationMinutes) * 60000);
-          updated.scheduledEnd = e.toISOString().slice(0, 16);
+          const duration = Number(updated.durationMinutes) || 60;
+          const e = new Date(s.getTime() + duration * 60000);
+          updated.scheduledEnd = toLocalIsoString(e);
         } catch {
           // ignore
         }
@@ -154,9 +160,9 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
       try {
         const d = new Date(trip.startDate);
         d.setHours(9, 0, 0, 0);
-        defaultStart = d.toISOString().slice(0, 16);
+        defaultStart = toLocalIsoString(d);
         const dend = new Date(d.getTime() + 90 * 60000);
-        defaultEnd = dend.toISOString().slice(0, 16);
+        defaultEnd = toLocalIsoString(dend);
       } catch {
         // ignore
       }
@@ -185,12 +191,15 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
       setError("");
       setSuccessMsg("");
 
-      if (!form.scheduledStart || !form.scheduledEnd) {
-        throw new Error("Please select both scheduled start and end time.");
+      if (!form.scheduledStart) {
+        throw new Error("Please select scheduled start time.");
       }
 
-      if (new Date(form.scheduledEnd) <= new Date(form.scheduledStart)) {
-        throw new Error("End time must be after the start time.");
+      let startDt = new Date(form.scheduledStart);
+      let endDt = form.scheduledEnd ? new Date(form.scheduledEnd) : null;
+      if (!endDt || endDt <= startDt) {
+        const duration = Number(form.durationMinutes) || 60;
+        endDt = new Date(startDt.getTime() + duration * 60000);
       }
 
       const activityData = {
@@ -200,8 +209,8 @@ function ActivityManager({ tripId, trip, user, onNavigate }) {
         location: form.location.trim(),
         estimatedCost: Number(form.estimatedCost) || 0,
         durationMinutes: Number(form.durationMinutes) || 60,
-        scheduledStart: new Date(form.scheduledStart).toISOString(),
-        scheduledEnd: new Date(form.scheduledEnd).toISOString(),
+        scheduledStart: startDt.toISOString(),
+        scheduledEnd: endDt.toISOString(),
         status: form.status,
       };
 
