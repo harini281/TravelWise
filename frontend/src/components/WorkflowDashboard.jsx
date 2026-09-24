@@ -10,6 +10,9 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [comment, setComment] = useState("");
+  const [travellerComment, setTravellerComment] = useState("");
+  const [showRevisionInput, setShowRevisionInput] = useState(false);
+  const [travellerDecisionProcessing, setTravellerDecisionProcessing] = useState(false);
 
   const isReviewerOrAdmin = user?.role === "Reviewer" || user?.role === "Admin";
 
@@ -208,18 +211,76 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
     }
   };
 
+  const submitTravellerDecision = async (decision) => {
+    if (!workflow) return;
+    if (!user) {
+      setError("Please sign in to submit your decision.");
+      return;
+    }
+
+    const trimmedComment = travellerComment.trim();
+    if ((decision === "REQUEST_CHANGES" || decision === "REVISE") && !trimmedComment) {
+      setError("Please describe what changes you would like made to this itinerary.");
+      return;
+    }
+    if (decision === "REJECT" && !trimmedComment) {
+      setError("Please provide a reason for rejecting this travel plan.");
+      return;
+    }
+
+    try {
+      setTravellerDecisionProcessing(true);
+      setError("");
+      setMessage("");
+
+      const response = await fetch(`${API_BASE_URL}/api/Workflow/${workflow.id}/traveller-decision`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          decision: decision,
+          comment: trimmedComment,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to record traveller decision.");
+      }
+
+      const updated = await response.json();
+      setWorkflow(updated);
+      setTravellerComment("");
+      setShowRevisionInput(false);
+      if (decision === "ACCEPT") {
+        setMessage("✓ You accepted the travel plan! It has been forwarded to the Administrator Review Queue for final verification.");
+      } else if (decision === "REQUEST_CHANGES") {
+        setMessage("✓ Revision request submitted. Reviewer will evaluate your feedback.");
+      } else {
+        setMessage("✓ Plan rejected.");
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTravellerDecisionProcessing(false);
+    }
+  };
+
   const isSafeFailure =
     workflow?.status === "SAFE_FAILURE" ||
     workflow?.status === "EXTERNAL_SERVICE_FAILED" ||
     aiResult?.workflow_status === "SAFE_FAILURE";
 
-  // Timeline Step Calculations
+  // Timeline Step Calculations (HITL: AI recommends -> Rules validate -> Traveller decides -> Admin verifies)
   const getTimelineSteps = () => {
     const steps = [
       { id: "created", label: "Trip Created", done: false, active: false },
       { id: "planning", label: "Agent Orchestration", done: false, active: false },
-      { id: "validation", label: "Safety Invariants", done: false, active: false },
-      { id: "approval", label: "Human Governance", done: false, active: false },
+      { id: "validation", label: "Deterministic Rules", done: false, active: false },
+      { id: "traveller", label: "Traveller Decision", done: false, active: false },
+      { id: "approval", label: "Admin Verification", done: false, active: false },
       { id: "completed", label: "Plan Activated", done: false, active: false },
     ];
 
@@ -232,16 +293,27 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
 
     if (workflow.status === "PLANNING" || processing) {
       steps[1].active = true;
-    } else if (workflow.status === "AWAITING_APPROVAL" || workflow.status === "SAFE_FAILURE" || workflow.approvalStatus === "PENDING") {
+    } else if (workflow.status === "AWAITING_TRAVELLER_REVIEW") {
       steps[1].done = true;
       steps[2].done = workflow.validationPassed === true;
       steps[3].active = true;
+    } else if (workflow.status === "AWAITING_ADMIN_REVIEW" || workflow.travellerDecision === "ACCEPTED") {
+      steps[1].done = true;
+      steps[2].done = workflow.validationPassed === true;
+      steps[3].done = true;
+      if (workflow.approvalStatus === "APPROVED" || workflow.status === "COMPLETED") {
+        steps[4].done = true;
+        steps[5].done = true;
+      } else {
+        steps[4].active = true;
+      }
     } else if (workflow.status === "COMPLETED" || workflow.approvalStatus === "APPROVED") {
       steps.forEach((s) => (s.done = true));
-    } else if (workflow.status === "REVISION_REQUIRED" || workflow.approvalStatus === "CHANGES_REQUESTED") {
+    } else {
       steps[1].done = true;
-      steps[2].done = true;
-      steps[3].active = true;
+      steps[2].done = workflow.validationPassed === true;
+      steps[3].done = !!workflow.travellerDecision;
+      steps[4].active = true;
     }
 
     return steps;
@@ -368,14 +440,16 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
             Coordinate autonomous agent evaluations across budget, activities, Open-Meteo weather, and compliance for <strong>{trip?.destination}</strong>.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={runIntelligentPlan}
-          disabled={processing}
-        >
-          {processing ? "Synthesizing Plan..." : "⚡ Generate Intelligent Trip Plan"}
-        </button>
+        {user?.role !== "Admin" && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={runIntelligentPlan}
+            disabled={processing}
+          >
+            {processing ? "Synthesizing Plan..." : "⚡ Generate Intelligent Trip Plan"}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -551,7 +625,21 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
           {workflow && getStatusBadge(workflow.approvalStatus || workflow.status)}
         </div>
 
-        {isReviewerOrAdmin ? (
+        {user?.role === "Admin" ? (
+          <div
+            style={{
+              padding: "16px 20px",
+              backgroundColor: "var(--primary-light)",
+              border: "1px solid var(--teal-border)",
+              borderRadius: "var(--radius-md)",
+              fontSize: "0.88rem",
+              color: "var(--ink)",
+              lineHeight: "1.6",
+            }}
+          >
+            🛡️ <strong>Administrator Workspace Notice:</strong> You are viewing this plan with administrator privileges. Official HITL review, invariance inspection, and governance verification are conducted from the <strong>AI Review Queue</strong> in your Admin Workspace.
+          </div>
+        ) : user?.role === "Reviewer" ? (
           <div>
             <div
               style={{
@@ -564,7 +652,7 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
                 marginBottom: "16px",
               }}
             >
-              Logged in as <strong>{user.role}</strong> ({user.email || user.username}). You have authorized authority to approve, reject, or request revisions.
+              Logged in as <strong>Reviewer</strong> ({user.email || user.username}). You have authorized authority to evaluate and submit review decisions.
             </div>
 
             <div className="form-group">
@@ -618,25 +706,156 @@ function WorkflowDashboard({ tripId, trip, user, onNavigate, isReviewMode = fals
             </div>
           </div>
         ) : (
-          <div
-            style={{
-              padding: "18px 20px",
-              backgroundColor: "var(--bg-surface-alt)",
-              borderRadius: "var(--radius-md)",
-              border: "1px dashed var(--border-color)",
-              color: "var(--text-secondary)",
-              fontSize: "0.9rem",
-              lineHeight: "1.6",
-            }}
-          >
-            🔒 <strong>Approval Controls Restricted:</strong> Human review decisions are reserved for authorized Reviewers and Administrators.
-            <div style={{ marginTop: "6px", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-              {workflow?.approvalStatus === "APPROVED"
-                ? "✓ Your travel plan has been fully approved and activated."
-                : workflow?.approvalStatus === "CHANGES_REQUESTED"
-                ? "⚠️ Changes were requested by your reviewer. Please see notes above and adjust your itinerary."
-                : "Your plan has been submitted for governance review. You will see reviewer commentary once evaluated."}
-            </div>
+          <div>
+            {/* Traveller Decision Block */}
+            {workflow?.travellerDecision === "ACCEPTED" ? (
+              <div
+                style={{
+                  padding: "18px 20px",
+                  backgroundColor: "var(--success-bg)",
+                  borderRadius: "var(--radius-md)",
+                  borderLeft: "4px solid var(--success)",
+                  color: "var(--success)",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: "4px" }}>
+                  ✓ You Accepted This Travel Plan
+                </div>
+                <div style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
+                  Your acceptance has been recorded. This plan is now submitted to the <strong>AI Review Queue</strong> awaiting final Administrator verification.
+                  {workflow.approvalStatus === "APPROVED" && (
+                    <div style={{ marginTop: "6px", fontWeight: 700, color: "var(--success)" }}>
+                      ✓ Final Administrator Verification Complete! Your journey is officially activated.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : workflow?.travellerDecision === "CHANGES_REQUESTED" ? (
+              <div
+                style={{
+                  padding: "18px 20px",
+                  backgroundColor: "#fffdf5",
+                  borderRadius: "var(--radius-md)",
+                  borderLeft: "4px solid #f59e0b",
+                  color: "#92400e",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: "4px" }}>
+                  ↺ Revision Requested by You
+                </div>
+                <div style={{ fontSize: "0.88rem", color: "var(--text-secondary)" }}>
+                  Your notes: "{workflow.travellerComment}"
+                </div>
+              </div>
+            ) : workflow?.travellerDecision === "REJECTED" ? (
+              <div
+                style={{
+                  padding: "18px 20px",
+                  backgroundColor: "var(--danger-bg)",
+                  borderRadius: "var(--radius-md)",
+                  borderLeft: "4px solid var(--danger)",
+                  color: "var(--danger)",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: "4px" }}>
+                  ✕ Plan Rejected
+                </div>
+                <div style={{ fontSize: "0.88rem", color: "var(--text-secondary)" }}>
+                  Reason: "{workflow.travellerComment}"
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: "20px",
+                  backgroundColor: "#fffdf5",
+                  border: "1px solid #fde68a",
+                  borderRadius: "var(--radius-md)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
+                  <h4 style={{ margin: 0, color: "var(--ink)", fontSize: "1.05rem" }}>
+                    📋 Step 1: Your Review & Decision
+                  </h4>
+                  <span className="badge badge-warning" style={{ fontSize: "0.75rem" }}>
+                    TRAVELLER ACTION REQUIRED
+                  </span>
+                </div>
+                <p style={{ margin: "0 0 16px", color: "var(--text-secondary)", fontSize: "0.88rem", lineHeight: "1.6" }}>
+                  Please inspect the synthesized itinerary, allocated budget, and weather assessment above.
+                  In TravelWise: <strong>the traveller decides first, the admin verifies second.</strong>
+                  Accepting this plan will forward it to the administrator for final institutional verification.
+                </p>
+
+                {showRevisionInput ? (
+                  <div style={{ marginBottom: "16px" }}>
+                    <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", fontWeight: 600, color: "var(--ink)" }}>
+                      Feedback or adjustments required:
+                    </label>
+                    <textarea
+                      rows={3}
+                      className="form-textarea"
+                      placeholder="e.g. Please increase the return transit reserve or add an activity in Nuwara Eliya..."
+                      value={travellerComment}
+                      onChange={(e) => setTravellerComment(e.target.value)}
+                    />
+                    <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => setShowRevisionInput(false)}
+                        disabled={travellerDecisionProcessing}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{ backgroundColor: "var(--warning)", color: "#ffffff" }}
+                        onClick={() => submitTravellerDecision("REQUEST_CHANGES")}
+                        disabled={travellerDecisionProcessing}
+                      >
+                        Submit Revisions
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={() => submitTravellerDecision("ACCEPT")}
+                      disabled={travellerDecisionProcessing}
+                    >
+                      ✓ Accept This Plan
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => setShowRevisionInput(true)}
+                      disabled={travellerDecisionProcessing}
+                    >
+                      ↺ Request Revisions
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      style={{ color: "var(--danger)", borderColor: "#fca5a5" }}
+                      onClick={() => {
+                        const reason = window.prompt("Reason for rejecting this plan:");
+                        if (reason) {
+                          setTravellerComment(reason);
+                          submitTravellerDecision("REJECT", reason);
+                        }
+                      }}
+                      disabled={travellerDecisionProcessing}
+                    >
+                      ✕ Reject Plan
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -32,6 +32,16 @@ function App() {
   const getInitialTab = () => {
     const path = window.location.pathname.toLowerCase();
     if (path === "/profile") return "profile";
+    if (path === "/admin" || path === "/admin/dashboard") return "admin_dashboard";
+    try {
+      const saved = sessionStorage.getItem("travelwise_user");
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u?.role === "Admin") return "admin_dashboard";
+      }
+    } catch {
+      // ignore
+    }
     return "dashboard";
   };
 
@@ -68,7 +78,7 @@ function App() {
     setCurrentRoute(route);
     if (route === "profile") setActiveTab("profile");
     if (route === "dashboard") setActiveTab("dashboard");
-    if (route === "admin-dashboard") setActiveTab("admin");
+    if (route === "admin-dashboard") setActiveTab("admin_dashboard");
     const pathMap = {
       landing: "/",
       login: "/login",
@@ -93,7 +103,7 @@ function App() {
       setCurrentRoute(route);
       if (route === "profile") setActiveTab("profile");
       if (route === "dashboard") setActiveTab("dashboard");
-      if (route === "admin-dashboard") setActiveTab("admin");
+      if (route === "admin-dashboard") setActiveTab("admin_dashboard");
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -108,7 +118,7 @@ function App() {
     }
 
     if (userData.role === "Admin") {
-      setActiveTab("admin");
+      setActiveTab("admin_dashboard");
       navigateTo("admin-dashboard");
     } else if (userData.role === "Traveller" && !userData.hasCompletedOnboarding) {
       navigateTo("onboarding");
@@ -131,7 +141,7 @@ function App() {
 
   const loadUserTrips = useCallback(async (showFullLoader = false) => {
     tripsRequest.current?.abort();
-    if (!user?.token) { setTrip(null); setTrips([]); setLoading(false); return; }
+    if (!user?.token || user?.role === "Admin") { setTrip(null); setTrips([]); setLoading(false); return; }
     const controller = new AbortController(); tripsRequest.current = controller;
     try {
       if (showFullLoader) setLoading(true);
@@ -184,8 +194,18 @@ function App() {
   const isAdmin = user?.role === "Admin";
   const isReviewerOrAdmin = user?.role === "Reviewer" || user?.role === "Admin";
 
-  const navItems = [
-    { id: "dashboard", label: isAdmin ? "Admin workspace" : "Your journey", icon: "dashboard" },
+  const adminNavItems = [
+    { id: "admin_dashboard", label: "Admin Dashboard", icon: "dashboard" },
+    { id: "admin_travellers", label: "Travellers", icon: "profile" },
+    { id: "admin_trips", label: "Trips", icon: "compass" },
+    { id: "admin_reviews", label: "AI Review Queue", icon: "safety" },
+    { id: "admin_safety", label: "Safety & Alerts", icon: "safety" },
+    { id: "admin_audit", label: "Audit Logs", icon: "budget" },
+    { id: "admin_profile", label: "Admin Profile", icon: "profile" },
+  ];
+
+  const travellerNavItems = [
+    { id: "dashboard", label: "Your journey", icon: "dashboard" },
     { id: "explore", label: "Explore destinations", icon: "compass" },
     { id: "accommodation", label: "Accommodation", icon: "compass" },
     { id: "trip", label: "Trip Planning & Map", icon: "compass" },
@@ -197,15 +217,31 @@ function App() {
     { id: "profile", label: "Profile & Preferences", icon: "profile" },
   ];
 
-  if (isReviewerOrAdmin) {
-    navItems.push({ id: "review", label: "Workflow Review", icon: "safety" });
+  if (user?.role === "Reviewer") {
+    travellerNavItems.push({ id: "review", label: "Workflow Review", icon: "safety" });
   }
 
+  const navItems = isAdmin ? adminNavItems : travellerNavItems;
 
   const getPageTitle = () => {
     switch (activeTab) {
+      case "admin_dashboard":
+      case "admin":
+        return "Admin Dashboard";
+      case "admin_travellers":
+        return "Travellers";
+      case "admin_trips":
+        return "Trips";
+      case "admin_reviews":
+        return "AI Review Queue";
+      case "admin_safety":
+        return "Safety & Alerts";
+      case "admin_audit":
+        return "Audit Logs";
+      case "admin_profile":
+        return "Admin Profile";
       case "dashboard":
-        return isAdmin ? "Admin workspace" : "Your journey";
+        return isAdmin ? "Admin Dashboard" : "Your journey";
       case "explore":
         return "Explore destinations";
       case "accommodation":
@@ -226,8 +262,6 @@ function App() {
         return "Profile & Preferences";
       case "review":
         return "AI Workflow Review";
-      case "admin":
-        return "Admin & Governance Workspace";
       default:
         return "TravelWise";
     }
@@ -470,7 +504,7 @@ function App() {
             <span style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-primary)" }}>
               {getPageTitle()}
             </span>
-            {trips.length > 0 && <select className="tw-trip-select" aria-label="Selected trip" value={trip?.id || ""} onChange={e => { const selected = trips.find(t => t.id === Number(e.target.value)); setTrip(selected); selectedTripId.current = selected?.id; }}>
+            {!isAdmin && trips.length > 0 && <select className="tw-trip-select" aria-label="Selected trip" value={trip?.id || ""} onChange={e => { const selected = trips.find(t => t.id === Number(e.target.value)); setTrip(selected); selectedTripId.current = selected?.id; }}>
               {trips.map(t => <option key={t.id} value={t.id}>{t.startingPlace} → {t.destination} · {t.startDate?.slice(0,10)}</option>)}
             </select>}
           </div>
@@ -496,7 +530,14 @@ function App() {
 
         {/* Dynamic Tab Content Container */}
         <main className="content-container">
-          {activeTab === "profile" ? (
+          {isAdmin ? (
+            <AdminDashboard
+              user={user}
+              activeTab={activeTab}
+              onNavigateTab={setActiveTab}
+              onLogout={handleLogout}
+            />
+          ) : activeTab === "profile" ? (
             <ProfilePage
               user={user}
               onUpdateUser={(updated) => {
@@ -508,7 +549,11 @@ function App() {
                 }
               }}
             />
-          ) : (activeTab === "admin" || (isAdmin && activeTab === "dashboard")) && isAdmin ? <AdminDashboard user={user}/> : activeTab === "explore" ? <DestinationExplorer onPlan={place => { setDraftDestination(place); setActiveTab("trip"); }}/> : activeTab === "accommodation" ? <AccommodationSearch trip={trip} /> : loading ? (
+          ) : activeTab === "explore" ? (
+            <DestinationExplorer onPlan={place => { setDraftDestination(place); setActiveTab("trip"); }}/>
+          ) : activeTab === "accommodation" ? (
+            <AccommodationSearch trip={trip} />
+          ) : loading ? (
             <div style={{ textAlign: "center", padding: "80px 0" }}>
               <div style={{ fontSize: "2.4rem", marginBottom: "12px" }}>✈️</div>
               <h3 style={{ color: "var(--text-primary)", fontWeight: "600" }}>Loading TravelWise...</h3>
@@ -616,7 +661,7 @@ function App() {
                 />
               )}
 
-              {activeTab === "review" && isReviewerOrAdmin && (
+              {activeTab === "review" && user?.role === "Reviewer" && (
                 <div className="tw-card">
                   <div className="tw-card-header">
                     <h3 className="tw-card-title">
@@ -628,7 +673,7 @@ function App() {
                     As an authorized <strong>{user.role}</strong>, you have access to Human-in-the-Loop decision controls over AI-generated plans.
                   </p>
                   <WorkflowDashboard
-                  key={trip?.id || "empty"}
+                    key={trip?.id || "empty"}
                     tripId={trip?.id}
                     trip={trip}
                     user={user}
@@ -636,10 +681,6 @@ function App() {
                     isReviewMode={true}
                   />
                 </div>
-              )}
-
-              {activeTab === "admin" && isAdmin && (
-                <AdminDashboard user={user} />
               )}
             </>
           )}

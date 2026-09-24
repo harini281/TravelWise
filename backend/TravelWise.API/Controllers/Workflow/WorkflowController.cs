@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -45,9 +47,12 @@ namespace TravelWise.API.Controllers
             var workflow = new AIWorkflow
             {
                 TripId = tripId,
-                Status = "PLANNING",
+                Status = "AI_GENERATED",
                 ApprovalStatus = "PENDING",
                 ValidationPassed = false,
+                TravellerDecision = null,
+                TravellerComment = null,
+                TravellerDecisionAt = null,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -59,29 +64,36 @@ namespace TravelWise.API.Controllers
                 workflow.Id,
                 "WORKFLOW_INITIATED",
                 "LangGraph multi-agent planning workflow initiated.",
-                "USER"
+                User.Identity?.Name ?? "TRAVELLER"
             );
 
             var aiResponse = await _aiServiceClient.RunTripWorkflowAsync(tripId, workflow.Id);
 
-            workflow.Status = string.IsNullOrWhiteSpace(aiResponse.WorkflowStatus)
-                ? "AWAITING_APPROVAL"
-                : aiResponse.WorkflowStatus;
-
-            workflow.ApprovalStatus = string.IsNullOrWhiteSpace(aiResponse.ApprovalStatus)
-                ? "PENDING"
-                : aiResponse.ApprovalStatus;
-
             workflow.ValidationPassed = aiResponse.ValidationResults.TryGetValue("passed", out var p) &&
                 (p is bool b ? b : p?.ToString()?.ToLower() == "true");
 
+            if (aiResponse.WorkflowStatus == "SAFE_FAILURE")
+            {
+                workflow.Status = "SAFE_FAILURE";
+            }
+            else if (workflow.ValidationPassed)
+            {
+                workflow.Status = "AWAITING_TRAVELLER_REVIEW";
+            }
+            else
+            {
+                workflow.Status = "VALIDATION_FAILED";
+            }
+
+            workflow.ApprovalStatus = "PENDING";
+            workflow.PlanDataJson = JsonSerializer.Serialize(aiResponse.AgentResults);
             workflow.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             await AddAuditLog(
                 workflow.Id,
                 "AGENTS_EVALUATION_COMPLETED",
-                $"Agents completed analysis. Status: {workflow.Status}.",
+                $"Agents completed analysis. Invariants: {(workflow.ValidationPassed ? "PASSED" : "FAILED")}. Status: {workflow.Status}.",
                 "AI_SERVICE"
             );
 
@@ -155,6 +167,10 @@ namespace TravelWise.API.Controllers
                     w.ValidationPassed,
                     w.Reviewer,
                     w.ApprovalComment,
+                    w.TravellerDecision,
+                    w.TravellerComment,
+                    w.TravellerDecisionAt,
+                    w.PlanDataJson,
                     w.CreatedAt,
                     w.UpdatedAt,
 
@@ -222,6 +238,10 @@ namespace TravelWise.API.Controllers
                     w.ValidationPassed,
                     w.Reviewer,
                     w.ApprovalComment,
+                    w.TravellerDecision,
+                    w.TravellerComment,
+                    w.TravellerDecisionAt,
+                    w.PlanDataJson,
                     w.CreatedAt,
                     w.UpdatedAt
                 })
@@ -274,7 +294,114 @@ namespace TravelWise.API.Controllers
 
 
         // -------------------------------------------------
-        // HUMAN APPROVAL
+        // TRAVELLER DECISION (HITL Phase 1)
+        // POST /api/Workflow/{id}/traveller-decision
+        // -------------------------------------------------
+
+        [Authorize]
+        [HttpPost("{id}/traveller-decision")]
+        public async Task<IActionResult> SubmitTravellerDecision(
+            int id,
+            [FromBody] TravellerWorkflowDecisionRequest request)
+        {
+            var workflow = await _context.AIWorkflows
+                .Include(w => w.Trip)
+                .FirstOrDefaultAsync(w => w.Id == id);
+
+            if (workflow == null)
+            {
+                return NotFound(new { message = "Workflow not found." });
+            }
+
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "";
+            var isTripOwner = int.TryParse(userIdClaim, out var currentUserId) && workflow.Trip != null && workflow.Trip.UserId == currentUserId;
+            var isPrivileged = userRole == "Admin" || userRole == "Reviewer";
+
+            if (!isTripOwner && !isPrivileged)
+            {
+                return StatusCode(403, new { message = "Access restricted: You may only review AI plans for your own trips." });
+            }
+
+            var decision = (request.Decision ?? "").Trim().ToUpper();
+            if (decision != "ACCEPT" &&
+                decision != "APPROVE" &&
+                decision != "REQUEST_CHANGES" &&
+                decision != "REQUEST CHANGES" &&
+                decision != "REVISE" &&
+                decision != "REJECT")
+            {
+                return BadRequest(new { message = "Decision must be ACCEPT, REQUEST_CHANGES, or REJECT." });
+            }
+
+            var comment = (request.Comment ?? "").Trim();
+            if ((decision == "REQUEST_CHANGES" || decision == "REQUEST CHANGES" || decision == "REVISE") && string.IsNullOrWhiteSpace(comment))
+            {
+                return BadRequest(new { message = "A comment is required when requesting revisions." });
+            }
+
+            if (decision == "REJECT" && string.IsNullOrWhiteSpace(comment))
+            {
+                return BadRequest(new { message = "A reason is required when rejecting a plan." });
+            }
+
+            var travellerIdentifier = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name ?? "Traveller";
+
+            workflow.TravellerComment = string.IsNullOrWhiteSpace(comment) ? null : comment;
+            workflow.TravellerDecisionAt = DateTime.UtcNow;
+            workflow.UpdatedAt = DateTime.UtcNow;
+
+            if (decision == "ACCEPT" || decision == "APPROVE")
+            {
+                workflow.TravellerDecision = "ACCEPTED";
+                workflow.Status = "AWAITING_ADMIN_REVIEW";
+                workflow.ApprovalStatus = "PENDING";
+
+                await AddAuditLog(
+                    workflow.Id,
+                    "TRAVELLER_ACCEPTED",
+                    $"Traveller accepted AI plan. Submitted for Admin review. {(string.IsNullOrWhiteSpace(comment) ? "" : $"Note: {comment}")}".Trim(),
+                    travellerIdentifier
+                );
+            }
+            else if (decision == "REJECT")
+            {
+                workflow.TravellerDecision = "REJECTED";
+                workflow.Status = "TRAVELLER_REJECTED";
+                workflow.ApprovalStatus = "REJECTED";
+
+                await AddAuditLog(
+                    workflow.Id,
+                    "TRAVELLER_REJECTED",
+                    $"Traveller rejected AI plan. Reason: {comment}",
+                    travellerIdentifier
+                );
+            }
+            else
+            {
+                workflow.TravellerDecision = "CHANGES_REQUESTED";
+                workflow.Status = "TRAVELLER_CHANGES_REQUESTED";
+                workflow.ApprovalStatus = "CHANGES_REQUESTED";
+
+                await AddAuditLog(
+                    workflow.Id,
+                    "TRAVELLER_CHANGES_REQUESTED",
+                    $"Traveller requested plan revisions: {comment}",
+                    travellerIdentifier
+                );
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = $"Traveller decision recorded: {workflow.TravellerDecision}",
+                workflow
+            });
+        }
+
+        // -------------------------------------------------
+        // HUMAN APPROVAL (HITL Phase 2 - Admin / Reviewer)
         // POST /api/Workflow/{id}/approval
         // -------------------------------------------------
 
@@ -295,11 +422,12 @@ namespace TravelWise.API.Controllers
                 });
             }
 
-            if (workflow.Status != "AWAITING_APPROVAL" && workflow.Status != "SAFE_FAILURE")
+            // Core TravelWise HITL rule: Traveller decides first. Admin verifies second.
+            if (workflow.TravellerDecision != "ACCEPTED" && workflow.Status != "AWAITING_ADMIN_REVIEW")
             {
                 return BadRequest(new
                 {
-                    message = "Workflow is not awaiting approval."
+                    message = "Admin cannot verify or approve this workflow before traveller acceptance. Current workflow status: " + workflow.Status
                 });
             }
 
@@ -350,12 +478,12 @@ namespace TravelWise.API.Controllers
             else if (decision == "REJECT")
             {
                 workflow.ApprovalStatus = "REJECTED";
-                workflow.Status = "REJECTED";
+                workflow.Status = "ADMIN_REJECTED";
             }
             else
             {
                 workflow.ApprovalStatus = "CHANGES_REQUESTED";
-                workflow.Status = "REVISION_REQUIRED";
+                workflow.Status = "ADMIN_CHANGES_REQUESTED";
             }
 
             await _context.SaveChangesAsync();
@@ -445,6 +573,14 @@ namespace TravelWise.API.Controllers
         public string Status { get; set; } = string.Empty;
 
         public bool ValidationPassed { get; set; }
+    }
+
+
+    public class TravellerWorkflowDecisionRequest
+    {
+        public string Decision { get; set; } = string.Empty; // "ACCEPT", "REQUEST_CHANGES", "REJECT"
+
+        public string? Comment { get; set; }
     }
 
 

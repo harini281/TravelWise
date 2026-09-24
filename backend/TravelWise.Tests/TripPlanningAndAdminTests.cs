@@ -272,4 +272,213 @@ public class TripPlanningAndAdminTests
         Assert.Equal(210.5, createdTrip.EstimatedDistanceKm);
         Assert.Equal(4200, createdTrip.EstimatedTransportCost);
     }
+
+    [Fact]
+    public async Task AdminController_GetUsers_DoesNotExposeSecrets()
+    {
+        var db = CreateInMemoryDbContext(nameof(AdminController_GetUsers_DoesNotExposeSecrets));
+        var controller = new AdminController(db);
+
+        db.Users.AddRange(
+            new User
+            {
+                Id = 1,
+                Username = "traveller1",
+                Email = "traveller1@travelwise.lk",
+                PasswordHash = "SECRET_HASH_DO_NOT_EXPOSE",
+                PasswordResetToken = "SECRET_TOKEN_DO_NOT_EXPOSE",
+                Role = "Traveller",
+                TravelStyle = "Cultural & Heritage",
+                Interests = "Ancient Ruins, Temples",
+                BudgetStyle = "Balanced",
+                ActivityPace = "Moderate",
+                TransportPreference = "Scenic Train",
+                HasCompletedOnboarding = true,
+                IsActive = true
+            },
+            new User
+            {
+                Id = 2,
+                Username = "adminuser",
+                Email = "admin@travelwise.lk",
+                PasswordHash = "ADMIN_SECRET_HASH",
+                Role = "Admin",
+                IsActive = true
+            }
+        );
+        await db.SaveChangesAsync();
+
+        var result = await controller.GetUsers();
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var users = Assert.IsAssignableFrom<System.Collections.IEnumerable>(okResult.Value);
+
+        // Serialize and verify no secret strings are present
+        var json = System.Text.Json.JsonSerializer.Serialize(users);
+        Assert.DoesNotContain("SECRET_HASH", json);
+        Assert.DoesNotContain("SECRET_TOKEN", json);
+        Assert.DoesNotContain("ADMIN_SECRET_HASH", json);
+        Assert.Contains("traveller1@travelwise.lk", json);
+        Assert.Contains("Ancient Ruins", json);
+        Assert.Contains("Scenic Train", json);
+    }
+
+    [Fact]
+    public async Task AdminController_GetSystemStats_ReturnsTruthfulMetricsAndLists()
+    {
+        var db = CreateInMemoryDbContext(nameof(AdminController_GetSystemStats_ReturnsTruthfulMetricsAndLists));
+        var controller = new AdminController(db);
+
+        db.Users.Add(new User { Id = 1, Username = "trav1", Email = "trav1@example.com", Role = "Traveller", IsActive = true });
+        db.Users.Add(new User { Id = 2, Username = "admin1", Email = "admin@example.com", Role = "Admin", IsActive = true });
+
+        db.Trips.Add(new Trip { Id = 1, UserId = 1, Destination = "Kandy", Status = "ACTIVE", StartDate = DateTime.UtcNow.AddDays(1), ReturnDate = DateTime.UtcNow.AddDays(3), BudgetAmount = 50000 });
+        db.Trips.Add(new Trip { Id = 2, UserId = 1, Destination = "Jaffna", Status = "COMPLETED", StartDate = DateTime.UtcNow.AddDays(-10), ReturnDate = DateTime.UtcNow.AddDays(-5), BudgetAmount = 40000 });
+
+        db.AIWorkflows.Add(new AIWorkflow
+        {
+            Id = 1,
+            TripId = 1,
+            Status = "AWAITING_ADMIN_REVIEW",
+            ApprovalStatus = "PENDING",
+            TravellerDecision = "ACCEPTED",
+            TravellerDecisionAt = DateTime.UtcNow
+        });
+
+        db.RiskAssessments.Add(new RiskAssessment
+        {
+            Id = 1,
+            TripId = 1,
+            RiskLevel = "HIGH",
+            RiskScore = 78,
+            Summary = "Monsoon storm warning"
+        });
+
+        await db.SaveChangesAsync();
+
+        var result = await controller.GetSystemStats();
+        var okResult = Assert.IsType<OkObjectResult>(result);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(okResult.Value);
+        Assert.Contains("\"activeTrips\":1", json);
+        Assert.Contains("\"completedTrips\":1", json);
+        Assert.Contains("\"pendingApprovals\":1", json);
+        Assert.Contains("\"highRiskAlerts\":1", json);
+        Assert.Contains("Monsoon storm warning", json);
+        Assert.Contains("Kandy", json);
+    }
+
+    [Fact]
+    public async Task AdminController_ProcessWorkflowReview_BeforeTravellerAcceptance_ReturnsBadRequest()
+    {
+        var db = CreateInMemoryDbContext(nameof(AdminController_ProcessWorkflowReview_BeforeTravellerAcceptance_ReturnsBadRequest));
+        var controller = new AdminController(db);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "99"),
+            new Claim(ClaimTypes.Email, "admin@travelwise.lk"),
+            new Claim(ClaimTypes.Role, "Admin")
+        };
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")) }
+        };
+
+        var workflow = new AIWorkflow
+        {
+            Id = 5,
+            TripId = 1,
+            Status = "AWAITING_TRAVELLER_REVIEW",
+            ApprovalStatus = "PENDING",
+            TravellerDecision = null // Not accepted by traveller
+        };
+        db.AIWorkflows.Add(workflow);
+        await db.SaveChangesAsync();
+
+        var request = new WorkflowApprovalRequest
+        {
+            Decision = "APPROVE",
+            Comment = "Admin approving before traveller acceptance"
+        };
+
+        var result = await controller.ProcessWorkflowReview(5, request);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("Admin cannot verify or approve this workflow before traveller acceptance", badRequest.Value!.ToString()!);
+    }
+
+    [Fact]
+    public async Task AdminController_ProcessWorkflowReview_AfterTravellerAcceptance_Succeeds()
+    {
+        var db = CreateInMemoryDbContext(nameof(AdminController_ProcessWorkflowReview_AfterTravellerAcceptance_Succeeds));
+        var controller = new AdminController(db);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "99"),
+            new Claim(ClaimTypes.Email, "admin@travelwise.lk"),
+            new Claim(ClaimTypes.Role, "Admin")
+        };
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")) }
+        };
+
+        var workflow = new AIWorkflow
+        {
+            Id = 6,
+            TripId = 1,
+            Status = "AWAITING_ADMIN_REVIEW",
+            ApprovalStatus = "PENDING",
+            TravellerDecision = "ACCEPTED",
+            TravellerComment = "Looks great, please verify.",
+            TravellerDecisionAt = DateTime.UtcNow
+        };
+        db.AIWorkflows.Add(workflow);
+        await db.SaveChangesAsync();
+
+        var request = new WorkflowApprovalRequest
+        {
+            Decision = "APPROVE",
+            Comment = "All risk thresholds and budgets verified."
+        };
+
+        var result = await controller.ProcessWorkflowReview(6, request);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+
+        var updated = await db.AIWorkflows.FindAsync(6);
+        Assert.NotNull(updated);
+        Assert.Equal("APPROVED", updated.ApprovalStatus);
+        Assert.Equal("COMPLETED", updated.Status);
+        Assert.Equal("All risk thresholds and budgets verified.", updated.ApprovalComment);
+        Assert.Contains("admin@travelwise.lk (Admin)", updated.Reviewer);
+
+        var audit = await db.WorkflowAuditLogs.FirstOrDefaultAsync(a => a.AIWorkflowId == 6 && a.EventType == "ADMIN_APPROVE");
+        Assert.NotNull(audit);
+    }
+
+    [Fact]
+    public async Task AdminController_GetSafetyAlerts_ReturnsRiskDistributionAndAlerts()
+    {
+        var db = CreateInMemoryDbContext(nameof(AdminController_GetSafetyAlerts_ReturnsRiskDistributionAndAlerts));
+        var controller = new AdminController(db);
+
+        db.Trips.Add(new Trip { Id = 1, Destination = "Trincomalee", StartingPlace = "Colombo" });
+        db.RiskAssessments.Add(new RiskAssessment
+        {
+            Id = 1,
+            TripId = 1,
+            RiskLevel = "HIGH",
+            RiskScore = 85,
+            Summary = "High coastal waves advisory",
+            AssessedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await controller.GetSafetyAlerts();
+        var okResult = Assert.IsType<OkObjectResult>(result);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(okResult.Value);
+        Assert.Contains("\"highRiskCount\":1", json);
+        Assert.Contains("High coastal waves advisory", json);
+    }
 }

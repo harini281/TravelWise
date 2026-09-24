@@ -166,8 +166,10 @@ public class BudgetAndReviewerTests
         {
             Id = 1,
             TripId = 40,
-            Status = "AWAITING_APPROVAL",
-            ApprovalStatus = "PENDING"
+            Status = "AWAITING_ADMIN_REVIEW",
+            ApprovalStatus = "PENDING",
+            TravellerDecision = "ACCEPTED",
+            TravellerDecisionAt = DateTime.UtcNow
         };
         context.AIWorkflows.Add(workflow);
         await context.SaveChangesAsync();
@@ -206,8 +208,10 @@ public class BudgetAndReviewerTests
         {
             Id = 2,
             TripId = 50,
-            Status = "AWAITING_APPROVAL",
-            ApprovalStatus = "PENDING"
+            Status = "AWAITING_ADMIN_REVIEW",
+            ApprovalStatus = "PENDING",
+            TravellerDecision = "ACCEPTED",
+            TravellerDecisionAt = DateTime.UtcNow
         };
         context.AIWorkflows.Add(workflow);
         await context.SaveChangesAsync();
@@ -246,8 +250,10 @@ public class BudgetAndReviewerTests
         {
             Id = 3,
             TripId = 60,
-            Status = "AWAITING_APPROVAL",
-            ApprovalStatus = "PENDING"
+            Status = "AWAITING_ADMIN_REVIEW",
+            ApprovalStatus = "PENDING",
+            TravellerDecision = "ACCEPTED",
+            TravellerDecisionAt = DateTime.UtcNow
         };
         context.AIWorkflows.Add(workflow);
         await context.SaveChangesAsync();
@@ -265,5 +271,34 @@ public class BudgetAndReviewerTests
 
         Assert.Equal("APPROVED", updatedWf.ApprovalStatus);
         Assert.Equal("COMPLETED", updatedWf.Status);
+    }
+
+    [Fact]
+    public async Task ProcessWorkflowApproval_BeforeTravellerAcceptance_ReturnsBadRequest()
+    {
+        using var context = CreateInMemoryDbContext("WorkflowBeforeTravellerAcceptanceDb");
+        var controller = new WorkflowController(context, null!);
+
+        var workflow = new AIWorkflow
+        {
+            Id = 4,
+            TripId = 70,
+            Status = "AWAITING_TRAVELLER_REVIEW",
+            ApprovalStatus = "PENDING",
+            TravellerDecision = null // Traveller has not yet decided!
+        };
+        context.AIWorkflows.Add(workflow);
+        await context.SaveChangesAsync();
+
+        var request = new WorkflowApprovalRequest
+        {
+            Decision = "APPROVE",
+            Reviewer = "admin@travelwise.lk",
+            Comment = "Admin attempting to approve prematurely"
+        };
+
+        var result = await controller.ProcessApproval(4, request);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("Admin cannot verify or approve this workflow before traveller acceptance", badRequest.Value!.ToString()!);
     }
 }

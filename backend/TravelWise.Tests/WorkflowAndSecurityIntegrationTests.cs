@@ -33,9 +33,11 @@ public class WorkflowAndSecurityIntegrationTests
         var workflow = new AIWorkflow
         {
             TripId = 2,
-            Status = "AWAITING_APPROVAL",
+            Status = "AWAITING_ADMIN_REVIEW",
             ApprovalStatus = "PENDING",
             ValidationPassed = true,
+            TravellerDecision = "ACCEPTED",
+            TravellerDecisionAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -59,6 +61,101 @@ public class WorkflowAndSecurityIntegrationTests
 
         // Verify audit trail logged
         var audit = await db.WorkflowAuditLogs.FirstOrDefaultAsync(a => a.AIWorkflowId == workflow.Id && a.EventType == "WORKFLOW_APPROVE");
+        Assert.NotNull(audit);
+    }
+
+    [Fact]
+    public async Task ProcessApproval_BeforeTravellerAcceptance_ReturnsBadRequest()
+    {
+        var db = CreateInMemoryDbContext(nameof(ProcessApproval_BeforeTravellerAcceptance_ReturnsBadRequest));
+        var client = new HttpClient();
+        var aiClient = new AIServiceClient(client, db, NullLogger<AIServiceClient>.Instance);
+        var controller = new WorkflowController(db, aiClient);
+
+        var workflow = new AIWorkflow
+        {
+            TripId = 2,
+            Status = "AWAITING_TRAVELLER_REVIEW",
+            ApprovalStatus = "PENDING",
+            ValidationPassed = true,
+            TravellerDecision = null, // Not accepted!
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.AIWorkflows.Add(workflow);
+        await db.SaveChangesAsync();
+
+        var request = new WorkflowApprovalRequest
+        {
+            Decision = "APPROVE",
+            Reviewer = "admin@travelwise.lk",
+            Comment = "Trying to approve prior to traveller acceptance"
+        };
+
+        var result = await controller.ProcessApproval(workflow.Id, request);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("Admin cannot verify or approve this workflow before traveller acceptance", badRequest.Value!.ToString()!);
+    }
+
+    [Fact]
+    public async Task SubmitTravellerDecision_Accept_SetsStatusToAwaitingAdminReview()
+    {
+        var db = CreateInMemoryDbContext(nameof(SubmitTravellerDecision_Accept_SetsStatusToAwaitingAdminReview));
+        var client = new HttpClient();
+        var aiClient = new AIServiceClient(client, db, NullLogger<AIServiceClient>.Instance);
+        var controller = new WorkflowController(db, aiClient);
+
+        var trip = new Trip
+        {
+            Id = 15,
+            UserId = 1,
+            Destination = "Galle",
+            StartingPlace = "Colombo",
+            StartDate = DateTime.UtcNow.AddDays(5),
+            ReturnDate = DateTime.UtcNow.AddDays(8),
+            BudgetAmount = 50000m,
+            TravellerCount = 2,
+            TripType = "Coastal"
+        };
+        db.Trips.Add(trip);
+
+        var workflow = new AIWorkflow
+        {
+            Id = 20,
+            TripId = 15,
+            Status = "AWAITING_TRAVELLER_REVIEW",
+            ApprovalStatus = "PENDING",
+            ValidationPassed = true
+        };
+        db.AIWorkflows.Add(workflow);
+        await db.SaveChangesAsync();
+
+        // Simulate authenticated user matching trip.UserId = 1
+        var userClaims = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new[]
+        {
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "1"),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, "traveller@travelwise.lk"),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "Traveller")
+        }, "mock"));
+        controller.ControllerContext = new ControllerContext { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = userClaims } };
+
+        var request = new TravellerWorkflowDecisionRequest
+        {
+            Decision = "ACCEPT",
+            Comment = "I like this itinerary! Ready for administrative verification."
+        };
+
+        var result = await controller.SubmitTravellerDecision(workflow.Id, request);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+
+        var updated = await db.AIWorkflows.FindAsync(workflow.Id);
+        Assert.NotNull(updated);
+        Assert.Equal("ACCEPTED", updated.TravellerDecision);
+        Assert.Equal("AWAITING_ADMIN_REVIEW", updated.Status);
+        Assert.NotNull(updated.TravellerDecisionAt);
+        Assert.Equal("I like this itinerary! Ready for administrative verification.", updated.TravellerComment);
+
+        var audit = await db.WorkflowAuditLogs.FirstOrDefaultAsync(a => a.AIWorkflowId == workflow.Id && a.EventType == "TRAVELLER_ACCEPTED");
         Assert.NotNull(audit);
     }
 

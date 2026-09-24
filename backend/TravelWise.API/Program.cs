@@ -242,6 +242,11 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""ReturnBudgetReserve"" numeric DEFAULT 0 NOT NULL;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""OriginalReturnDate"" timestamp with time zone;
                 ALTER TABLE IF EXISTS ""Trips"" ADD COLUMN IF NOT EXISTS ""ReturnTransport"" text;
+
+                ALTER TABLE IF EXISTS ""AIWorkflows"" ADD COLUMN IF NOT EXISTS ""TravellerDecision"" text;
+                ALTER TABLE IF EXISTS ""AIWorkflows"" ADD COLUMN IF NOT EXISTS ""TravellerComment"" text;
+                ALTER TABLE IF EXISTS ""AIWorkflows"" ADD COLUMN IF NOT EXISTS ""TravellerDecisionAt"" timestamp with time zone;
+                ALTER TABLE IF EXISTS ""AIWorkflows"" ADD COLUMN IF NOT EXISTS ""PlanDataJson"" text;
             ");
         }
     }

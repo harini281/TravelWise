@@ -15,6 +15,16 @@ namespace TravelWise.API.Models
         public string? Reviewer { get; set; }
 
         public string? ApprovalComment { get; set; }
+ 
+        // Human-in-the-Loop: Traveller review fields
+        public string? TravellerDecision { get; set; } // "ACCEPTED", "CHANGES_REQUESTED", "REJECTED"
+
+        public string? TravellerComment { get; set; }
+
+        public DateTime? TravellerDecisionAt { get; set; }
+
+        // Structured multi-agent plan output (Budget, Activity, Risk, Readiness)
+        public string? PlanDataJson { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
