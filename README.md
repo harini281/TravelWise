@@ -1,6 +1,5 @@
 # TravelWise — Intelligent Travel Safety & Itinerary Platform
 
-TravelWise is developed as part of the **SE3090 Software Engineering Frameworks** university project.
 
 It provides a full-stack, enterprise-grade travel management platform that combines **deterministic business rules** (for financial integrity, schedule overlap prevention, and risk scoring) with an **agentic multi-agent artificial intelligence service** (powered by LangGraph) and **human-in-the-loop governance**.
 
