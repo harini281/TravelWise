@@ -1,324 +1,312 @@
-# TravelWise — Intelligent Travel Safety & Itinerary Platform
+# TravelWise — Intelligent Travel Planning Platform
 
+TravelWise is a full-stack travel planning platform built for SE3090 – Software Engineering Frameworks. The repository combines a React web client, Flutter client, ASP.NET Core Web API, PostgreSQL persistence, external travel-data integrations, and a Python/FastAPI LangGraph workflow service.
 
-It provides a full-stack, enterprise-grade travel management platform that combines **deterministic business rules** (for financial integrity, schedule overlap prevention, and risk scoring) with an **agentic multi-agent artificial intelligence service** (powered by LangGraph) and **human-in-the-loop governance**.
+The implementation is organized around four primary business components: Smart Budget & Expense Management, Experience & Activity Planning, Travel Safety & Risk Management, and Travel Document & Readiness Management.
 
----
+## Project Overview
 
-## Implemented Features
+TravelWise provides a shared trip context through which travellers can manage trip details, spending, activities, safety information, and pre-travel readiness. React and Flutter communicate through the ASP.NET Core API. The API persists application data with Entity Framework Core and PostgreSQL and is also the integration boundary for the internal Python workflow service.
 
-- **ASP.NET Core Web API backend** (`http://localhost:5179`)
-- **PostgreSQL database integration** using Entity Framework Core 8
-- **Trip management and shared trip context**
-  - Trip creation, editing, deletion, and retrieval
-  - Case-insensitive search (`EF.Functions.ILike`) across destinations and starting points
-- **Smart Budget & Expense Management**
-  - Budget tracking and category allocations
-  - Expense CRUD operations
-  - Remaining budget calculation
-  - Spending percentage tracking
-  - Deterministic budget health analysis (`HEALTHY`, `WARNING`, `CRITICAL`)
-- **Experience & Activity Planning**
-  - Activity CRUD operations
-  - Trip-date boundary validation (activities must fall within trip dates)
-  - Activity schedule validation (`StartTime` < `EndTime` and conflict detection)
-- **Travel Safety & Risk Management**
-  - Open-Meteo live weather API integration
-  - Weather data retrieval and condition scoring
-  - Deterministic trip risk assessment (0–100 risk scale)
-  - Safe, graceful handling of unavailable weather data with seasonal baseline fallbacks
-- **Travel Document & Readiness Management**
-  - Travel requirement checklists (passports, visas, insurance, hotel bookings)
-  - Readiness checklist tracking
-  - Deterministic readiness assessment (0–100% readiness score)
-- **Client Applications**
-  - React web application connected to the ASP.NET Core API (`http://localhost:5173`)
-  - Flutter cross-platform application connected to the same ASP.NET Core API (`http://localhost:5174`)
-- **AI Multi-Agent Workflow Engine**
-  - AI workflow persistence in PostgreSQL (`WorkflowInstances`, `AgentTasks`)
-  - Human-in-the-loop approval workflow (`AWAITING_APPROVAL` $\to$ `APPROVED`)
-  - Specialized AI agent components for:
-    - **Budget Agent**: Evaluates spend velocity and category limits
-    - **Activity Agent**: Recommends optimized activity schedules
-    - **Risk Agent**: Synthesizes weather alerts and travel advisories
-    - **Readiness Agent**: Computes pre-departure compliance
-  - LangGraph-based workflow/orchestration structure
-  - Post-orchestration invariant validation and approval state transitions
-- **Security, Identity & RBAC**
-  - PBKDF2 password hashing with cryptographic salting
-  - JWT Bearer token authentication
-  - Role-Based Access Control (`Traveller`, `Reviewer`, `Admin`)
-  - Swagger UI with Bearer token authorization support
-- **Quality Assurance & DevOps**
-  - Automated .NET xUnit test suite (deterministic validation & authentication)
-  - Automated Python pytest suite (golden cases & API health)
-  - Flutter test suite (widget smoke test & DTO serialization)
-  - Multi-tier GitHub Actions Continuous Integration pipeline (`.github/workflows/ci.yml`)
+## Business Components
 
----
+### Smart Budget & Expense Management
 
-## Current Architecture
+The budget component provides budget and expense operations through the ASP.NET Core backend and persisted data model. The implementation includes budget tracking, expenses, remaining-spend calculations, category-related budget data, and deterministic budget-health evaluation.
 
-The client applications do not access the database directly. All client requests pass through the ASP.NET Core API as the single entry point.
+The corresponding Python **Budget Agent** consumes trusted workflow context or calls controlled budget tools. Its current implementation calculates total budget, total spent, remaining budget, spending percentage and a health classification, then returns a structured recommendation.
+
+### Experience & Activity Planning
+
+The activity component provides trip activity operations and schedule-related validation. Activities are associated with trips and the backend contains validation for trip-date boundaries and schedule conflicts.
+
+The corresponding **Activity Agent** consumes activity context or retrieves activities through its controlled tool. It returns a structured summary of the current activity plan and a recommendation to review schedule, cost, duration and conflicts.
+
+### Travel Safety & Risk Management
+
+The risk component integrates weather information into trip safety assessment. The backend contains an Open-Meteo integration and deterministic risk processing.
+
+The corresponding **Risk Agent** consumes risk context or invokes its controlled risk-assessment tool. It returns a structured risk score, risk level, summary and recommendation.
+
+### Travel Document & Readiness Management
+
+The readiness component manages travel-preparation requirements and readiness information. The backend includes readiness persistence and deterministic readiness assessment.
+
+The corresponding **Readiness Agent** consumes readiness context or invokes its controlled readiness tool. It returns a structured readiness score, readiness level, summary and recommendation.
+
+## Stakeholders and User Roles
+
+The authentication implementation currently establishes **Traveller** as the role assigned through public registration. The repository also contains **Reviewer** and **Admin** authorization concepts for governance and approval operations.
+
+Traveller preferences are persisted through the authenticated profile/preferences API. The current profile model includes travel style, interests, budget style, activity pace and transport preference.
+
+Host and Service Provider are not documented here as implemented user roles because repository evidence reviewed for this README did not establish complete Host or Service Provider authentication, permissions and role-specific workflows.
+
+## System Architecture
 
 ```text
-React Web App ─────┐
-                   │
-Flutter App ───────┤
-                   ▼
-            ASP.NET Core API
-                   │
-          ┌────────┴────────┐
-          ▼                 ▼
-     PostgreSQL       Agentic AI Service
-                       (FastAPI/Python)
-                              │
-                         Orchestrator
-                              │
-             ┌────────────────┼────────────────┐
-             ▼                ▼                ▼
-        Budget Agent     Activity Agent    Risk Agent
-                                               │
-                                      Readiness Agent
+React Web Client ─────┐
+                      │
+Flutter Client ───────┤
+                      ▼
+               ASP.NET Core API
+                 /           \
+                ▼             ▼
+          PostgreSQL     Internal AI Service
+                         FastAPI + LangGraph
+                                │
+                         Central Orchestrator
+                                │
+             ┌──────────────────┼──────────────────┐
+             ▼                  ▼                  ▼
+        Budget Agent      Activity Agent       Risk Agent
+                                                    │
+                                              Readiness Agent
 ```
 
----
+The four domain agents are specialist workflow components. The central orchestrator coordinates them; it is not described as a fifth specialist agent.
 
-## Port Allocation Reference
+Clients are intended to use ASP.NET Core as the application entry point rather than directly accessing PostgreSQL or the internal Python service.
 
-| Service | Technology | Port / URL | Notes |
-| :--- | :--- | :--- | :--- |
-| **Backend API** | ASP.NET Core 8 | `http://localhost:5179` | Swagger UI at `http://localhost:5179/swagger` |
-| **Agentic AI** | Python FastAPI / LangGraph | `http://127.0.0.1:8000` | Health check at `http://127.0.0.1:8000/health` |
-| **Web Frontend** | React 19 / Vite | `http://localhost:5173` | Browser web client |
-| **Flutter Client**| Flutter Web / Mobile | `http://localhost:5174` | Cross-platform client |
-| **Database** | PostgreSQL 16 | `localhost:5432` | Database name: `travelwise` |
+## Technology Stack
 
----
+| Area | Technology |
+| --- | --- |
+| Backend | ASP.NET Core / .NET 8 |
+| Data access | Entity Framework Core |
+| Database | PostgreSQL |
+| Web | React + Vite |
+| Mobile / cross-platform | Flutter |
+| Internal workflow service | Python + FastAPI |
+| Orchestration | LangGraph |
+| Validation schemas | Pydantic |
+| HTTP integration | httpx / ASP.NET HttpClient |
+| Weather | Open-Meteo |
+| Place/accommodation integration | Geoapify |
+| Mapping | Leaflet |
+| CI | GitHub Actions |
 
-## Quick Start & Local Setup
+## Agentic Workflow Architecture
 
-### 1. Prerequisites
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [Python 3.11+](https://www.python.org/downloads/)
-- [Node.js 20+](https://nodejs.org/)
-- [Flutter 3.28+](https://flutter.dev/docs/get-started/install)
-- [PostgreSQL 16](https://www.postgresql.org/download/)
+The Python service defines four specialist workflow nodes:
 
-### 2. Database Migration & Backend Startup
+- **Budget Agent** — budget and spending analysis.
+- **Activity Agent** — activity-plan analysis.
+- **Risk Agent** — risk and weather-related analysis.
+- **Readiness Agent** — preparation/readiness analysis.
+
+The LangGraph orchestrator builds a workflow with planning, the four specialist nodes, finalization and deterministic validation. Requested capabilities determine whether an individual specialist performs work, while the graph itself follows a fixed sequential node order.
+
+```text
+START
+  ↓
+Plan requested capabilities
+  ↓
+Budget Agent
+  ↓
+Activity Agent
+  ↓
+Risk Agent
+  ↓
+Readiness Agent
+  ↓
+Finalize
+  ↓
+Deterministic Validation
+  ↓
+END
+```
+
+The workflow maintains structured state including trip/user context, requested capabilities, agent tasks/results, validation information, workflow status and errors.
+
+### Controlled Agent Tools
+
+The repository contains separate controlled tool modules for budget, activity, risk and readiness. These tools provide the workflow service with application information without making the specialist-agent code responsible for PostgreSQL persistence.
+
+### Deterministic Validation and Safe Failure
+
+The workflow includes a deterministic validation stage after specialist execution. If requested specialist results are missing or unsuccessful, finalization can move the workflow to a safe-failure state rather than presenting an incomplete result as successful.
+
+### Human-in-the-Loop Governance
+
+Workflow state and approval information are persisted through the ASP.NET Core application. Approval operations are role-restricted where authorization is applied, allowing human governance to remain separate from specialist recommendations.
+
+## Current AI Implementation Boundary
+
+The current Python dependency list contains FastAPI, Pydantic, LangGraph, httpx and pytest. The four inspected specialist implementations use deterministic Python logic and controlled tool calls to generate their current analyses and recommendations.
+
+No direct Gemini, OpenAI, Anthropic, Azure OpenAI or other LLM invocation was verified in the inspected current AI-service implementation. Therefore this README does **not** claim model-backed LLM reasoning, dynamic model-selected delegation, or generative reasoning that is not present in the current code. LangGraph is used for workflow orchestration.
+
+## Database Design
+
+TravelWise uses PostgreSQL through Entity Framework Core. The migration history includes schema changes for the core trip model and the four business domains, including budget management, activities, risk management and readiness management. Workflow-related persistence is also represented in the application.
+
+The database is accessed through the backend application layer; client applications do not directly connect to PostgreSQL.
+
+## API Architecture
+
+The ASP.NET Core project contains controllers for core application concerns including:
+
+- authentication and profile/preferences;
+- trips and shared trip context;
+- budgets and expenses;
+- activities;
+- risk;
+- readiness;
+- workflow orchestration and approval;
+- administration;
+- accommodation/destination discovery.
+
+Swagger/OpenAPI is configured for API exploration in the local backend environment.
+
+## React Web Application
+
+The React application is the browser client for TravelWise. Repository evidence includes authentication/onboarding, traveller-facing functionality, dashboard/application UI, accommodation discovery, maps, workflow-related views and administration/governance UI.
+
+React communicates with the ASP.NET Core backend rather than directly with PostgreSQL or the Python workflow service.
+
+## Flutter Application
+
+The repository contains a Flutter cross-platform client and Flutter tests. It uses HTTP-based API integration with the TravelWise backend. Only functionality represented by the current Flutter source should be treated as implemented; the existence of a corresponding React feature does not by itself establish Flutter parity.
+
+## Authentication and Authorization
+
+The backend implements JWT-based authentication and password hashing. Public registration assigns the Traveller role. Authenticated profile and preference endpoints use `[Authorize]`.
+
+The codebase also contains role-based governance for Reviewer/Admin operations. Authorization must be evaluated per endpoint; the existence of JWT/RBAC infrastructure does not imply that every trip-specific endpoint is ownership-protected.
+
+## Third-Party Integrations
+
+### Open-Meteo
+
+The backend contains an Open-Meteo weather integration used by the Travel Safety & Risk domain.
+
+### Geoapify
+
+The backend contains a Geoapify integration used for destination/accommodation-related discovery functionality.
+
+## Repository Structure
+
+```text
+TravelWise/
+├── backend/       ASP.NET Core API, EF Core and tests
+├── frontend/      React/Vite web application
+├── mobile/        Flutter client
+├── ai-service/    FastAPI/LangGraph workflow service
+├── docs/          Project documentation
+├── .github/       GitHub Actions configuration
+└── README.md
+```
+
+## Local Development
+
+### Prerequisites
+
+Install compatible versions of:
+
+- .NET 8 SDK
+- PostgreSQL
+- Python 3.11+
+- Node.js
+- Flutter
+
+### Backend and Database
+
 ```bash
-# Navigate to backend API directory
 cd backend/TravelWise.API
-
-# Update database schema with EF Core migrations
 dotnet ef database update
-
-# Run the ASP.NET Core API
 dotnet run --launch-profile http
 ```
-The API is now running at `http://localhost:5179`. Open `http://localhost:5179/swagger` to explore the interactive API documentation.
 
-### 3. Agentic AI Service Startup
+The documented local backend profile uses `http://localhost:5179`, with Swagger available at `/swagger`.
+
+### Agent Service
+
 ```bash
-# Open a new terminal and navigate to ai-service directory
 cd ai-service
-
-# Create and activate virtual environment
 python -m venv .venv
-# On Windows:
-.\.venv\Scripts\activate
-# On Linux/macOS:
-source .venv/bin/activate
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Start the FastAPI service
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 4. React Web Frontend Startup
+### React
+
 ```bash
-# Open a new terminal and navigate to frontend directory
 cd frontend
-
-# Install npm dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
-The web dashboard is now accessible at `http://localhost:5173`.
 
-### 5. Flutter Client Startup
+### Flutter
+
 ```bash
-# Open a new terminal and navigate to mobile directory
 cd mobile
-
-# Get dependencies
 flutter pub get
-
-# Run on Chrome
-flutter run -d chrome --web-port=5174
+flutter run
 ```
 
----
+## Environment and Secret Configuration
 
-## Running the Automated Test Suites
+The repository contains example environment files for configuration guidance. Secrets, database passwords, JWT signing keys and third-party credentials must not be copied into documentation or committed as production credentials.
 
-### Backend .NET Tests (xUnit)
-```bash
-dotnet test backend/TravelWise.Tests/TravelWise.Tests.csproj
-```
-Executes deterministic validation tests (budget overspend, chronological bounds, time clash detection) and authentication tests (password hashing, JWT verification).
+The current repository revision contains sensitive-looking development values in backend configuration. They are intentionally not reproduced in this README. Those values should be treated as exposed development secrets and rotated/moved to environment-based secret configuration before production use.
 
-### AI Service Tests (Pytest)
-```bash
-cd ai-service
-pytest tests/
-```
-Executes golden-case scenario tests for multi-agent execution, state invariants, and health endpoints.
+## Testing
 
-### Flutter Tests
-```bash
-cd mobile
-flutter test
-```
-Executes widget rendering and DTO serialization unit tests.
+The repository contains automated testing infrastructure across multiple layers:
 
-## Default Demo Credentials & Role Permissions
+- **ASP.NET Core/xUnit** tests for backend behaviour.
+- **pytest** tests for the Python workflow service, including golden-case/safety-oriented scenarios.
+- **Flutter** unit/widget testing.
+- **Playwright** browser workflow testing configured through the React project.
+- React production build validation.
 
-To seed default test users into the database, trigger the seeding endpoint:
-```bash
-curl -X POST http://localhost:5179/api/Auth/seed-demo-users
-```
+Test files and CI commands establish the existence of these suites. This README does not claim local pass counts or performance measurements without independently retained execution evidence.
 
-| Persona | Username | Email | Password | Role Description |
-| :--- | :--- | :--- | :--- | :--- |
-| **Traveller** | `traveller` | `traveller@travelwise.lk` | `Traveller123!` | Standard traveller creating itineraries, managing expenses, and triggering AI workflows. |
-| **Reviewer** | `reviewer` | `reviewer@travelwise.lk` | `Reviewer123!` | Safety & financial reviewer authorized to approve, reject, or request revisions on plans. |
-| **Administrator** | `admin` | `admin@travelwise.lk` | `Admin123!` | System administrator with global governance, seeding, and management permissions. |
+## CI/CD
 
-### Role-Based Authorization Matrix
+`.github/workflows/ci.yml` runs on pushes and pull requests targeting `main`. The workflow defines separate jobs for:
 
-| System Capability / Endpoint | Unauthenticated | Traveller | Reviewer | Administrator |
-| :--- | :---: | :---: | :---: | :---: |
-| **View Trip Context & Itinerary** (`GET /api/Trips/{id}`) | ✓ | ✓ | ✓ | ✓ |
-| **Read Budget & Expense History** (`GET /api/Budgets/{id}/health`) | ✓ | ✓ | ✓ | ✓ |
-| **Log Financial Transactions** (`POST /api/Expenses`) | ✓ | ✓ | ✓ | ✓ |
-| **Inspect Risk & Weather Telemetry** (`GET /api/Risk/weather/trip/{id}`) | ✓ | ✓ | ✓ | ✓ |
-| **Trigger AI Orchestration** (`POST /api/Workflow/trip/{id}/run`) | ✓ | ✓ | ✓ | ✓ |
-| **Evaluate & Approve Workflow** (`POST /api/Workflow/{id}/approval`) | ✕ (401) | ✕ (403 Forbidden) | ✓ (200 OK) | ✓ (200 OK) |
-| **Seed Test Data** (`POST /api/Auth/seed-demo-users`) | ✕ | ✕ | ✕ | ✓ (200 OK) |
+- .NET restore, build and backend tests;
+- Python dependency installation and pytest;
+- Flutter dependency installation, static analysis and tests;
+- React dependency installation, production build and Playwright workflow tests.
 
----
+The existence of the workflow is documented separately from the status of any particular run.
 
-## Safe Failure & Graceful Degradation Architecture
+## Deployment
 
-TravelWise implements a **fail-safe resilience architecture** guaranteeing system availability even during partial service disruptions:
+The repository includes deployment-related documentation/configuration, and the GitHub repository metadata declares a Vercel homepage for the web application. Deployment of each tier should only be described as live when its current endpoint is independently verified.
 
-1. **AI Service Outage (`SAFE_FAILURE` state)**:
-   - When the Python FastAPI AI service is unreachable, ASP.NET Core catches the transport exception and transitions the workflow into a `SAFE_FAILURE` state with `FALLBACK_DETERMINISTIC` markers.
-   - Deterministic safety checks (budget balance calculations, date boundary verifications) remain active.
-   - A high-visibility warning banner is rendered on both React and Flutter clients notifying users:
-     > *"⚠️ Safe Failure Notice: AI service is temporarily unavailable. Deterministic safety checks were completed where possible. AI-generated recommendations are unavailable. Human review is required."*
-   - Plan approval remains blocked until reviewed by an authorized human.
+Local development and deployment are intentionally treated as separate states in this documentation.
 
-2. **External Weather API Outage (Open-Meteo Fallback)**:
-   - If the Open-Meteo external weather API times out or fails, the Risk Manager logs a warning and falls back to seasonal baseline climate estimates for Sri Lanka rather than returning an HTTP 500 error.
+## Git Workflow
 
----
+The repository contains a commit history with incremental implementation work and GitHub pull-request support. Contribution ownership should be established from commit/PR evidence rather than inferred solely from filenames or documentation.
 
-## Performance Benchmark & Latency Audit
+## Individual and Shared Contribution Boundaries
 
-Run the automated performance benchmark suite:
-```bash
-python scripts/performance_benchmark.py
-```
+The four primary business-component ownership boundaries are:
 
-### Verified Benchmark Results (Local Audit)
+| Primary component | Specialist workflow component |
+| --- | --- |
+| Smart Budget & Expense Management | Budget Agent |
+| Experience & Activity Planning | Activity Agent |
+| Travel Safety & Risk Management | Risk Agent |
+| Travel Document & Readiness Management | Readiness Agent |
 
-| Operation / Endpoint | Sample Size | Avg Latency | Max Latency | Failure Rate | SLA Compliance |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| `GET /api/Trips/2` (Read Trip Context) | 5 | ~20 ms | 25 ms | 0.0% | **PASS** (< 100 ms) |
-| `POST /api/Expenses` (Financial Transaction) | 5 | ~24 ms | 31 ms | 0.0% | **PASS** (< 100 ms) |
-| `GET /api/Risk/weather/trip/2` (Open-Meteo Integration) | 5 | ~667 ms | 810 ms | 0.0% | **PASS** (< 2000 ms) |
-| `POST /api/Workflow/trip/2/run` (Multi-Agent LangGraph) | 3 | ~5012 ms | 5350 ms | 0.0% | **PASS** (< 10000 ms) |
+Harini's expected primary academic slice is **Smart Budget & Expense Management + Budget Agent**. Detailed claims about individual backend, database, React, Flutter, testing and integration ownership should be supported by Git/PR evidence.
 
----
+Shared infrastructure includes the central orchestrator, shared trip context, authentication/authorization infrastructure, workflow persistence, deterministic workflow validation, HITL/governance, common integration infrastructure, CI/deployment work and project documentation unless Git evidence establishes a more specific ownership split.
 
-## Key API Endpoints Reference
+## Documentation
 
-### Trips & Context
-- `GET /api/Trips` — List trips (supports `?search=` case-insensitive search)
-- `GET /api/Trips/{id}` — Fetch full trip context
-- `POST /api/Trips` — Create new trip with boundary validation
-- `PUT /api/Trips/{id}` — Update trip details
-- `DELETE /api/Trips/{id}` — Delete trip
+Additional project documentation is available under `docs/`, including architecture, project overview, business rules, deployment and AI-disclosure material. Documentation claims should remain consistent with executable code and repository evidence.
 
-### Smart Budget & Expenses
-- `GET /api/Expenses/trip/{tripId}` — List all expenses for a trip
-- `POST /api/Expenses` — Record a new expense (validates remaining budget)
-- `GET /api/Budgets/{budgetId}/health` — Retrieve deterministic budget health
+## Security Notes for Reproduction
 
-### Travel Safety & Risk
-- `GET /api/Risk/weather/trip/{tripId}` — Retrieve live weather telemetry
-- `POST /api/Risk/assess/trip/{tripId}` — Perform deterministic risk assessment with seasonal fallback
+Do not publish real secrets or reuse credentials found in Git history. Configure local/deployed credentials through appropriate environment or secret-management mechanisms. Evaluate ownership authorization on trip-scoped endpoints before exposing the application to real users.
 
-### AI Workflow Orchestration & Human Approval
-- `POST /api/Workflow/trip/{tripId}/run` — Trigger LangGraph multi-agent orchestration
-- `GET /api/Workflow/trip/{tripId}` — Check latest workflow status and agent tasks
-- `POST /api/Workflow/{workflowId}/approval` — Submit human approval decision (`[Authorize(Roles = "Reviewer,Admin")]`)
+## Academic Documentation Principle
 
-### Authentication & Identity
-- `POST /api/Auth/register` — Register a new user
-- `POST /api/Auth/login` — Authenticate and receive JWT Bearer token
-- `GET /api/Auth/me` — Verify authenticated identity and claims (`[Authorize]`)
-- `POST /api/Auth/seed-demo-users` — Seed default demo personas
-
----
-
-## University Viva Voce & Demonstration Guide
-
-Follow this 5-step live demonstration sequence during your examination:
-
-1. **Step 1: Architecture & Single Entry Point Gateway**:
-   - Show that both the **React Web client** (`:5173`) and **Flutter client** (`:5174`) communicate exclusively through the **ASP.NET Core Web API Gateway** (`:5179`).
-   - Show that the **Python LangGraph AI service** (`:8000`) is fully isolated as an internal microservice.
-
-2. **Step 2: Deterministic Business Invariants**:
-   - In Expense Management, add an expense exceeding the trip's remaining budget $\to$ show that the deterministic budget health instantly shifts to `CRITICAL`.
-   - In Activity Planning, attempt to add an activity outside the trip dates $\to$ observe the validation rejection preventing invalid state.
-
-3. **Step 3: Multi-Agent AI Workflow Orchestration**:
-   - On Trip 2 (Colombo $\to$ Ella), click **⚡ Run Intelligent Trip Plan**.
-   - Observe the 4 specialized agents execute:
-     - **Budget Agent**: Analyzes burn rate and category allocations.
-     - **Activity Agent**: Validates itinerary density and scheduling conflicts.
-     - **Risk Agent**: Synthesizes Open-Meteo weather telemetry and calculates safety risk score.
-     - **Readiness Agent**: Computes pre-departure compliance and checklist readiness.
-   - Show that upon completion, the workflow transitions to `AWAITING_APPROVAL` with `PENDING` approval.
-
-4. **Step 4: Role-Based Human Governance (RBAC Enforcement)**:
-   - Log in as **Traveller** (`traveller`) $\to$ notice that the approval buttons are disabled and a notice explains approval is restricted.
-   - Log in as **Reviewer** (`reviewer`) $\to$ enter review feedback and click **✓ Approve Plan**.
-   - Show the workflow status update to `COMPLETED` with `APPROVED` status and recorded reviewer metadata.
-
-5. **Step 5: Automated Testing & Continuous Integration**:
-   - In terminal, show all 4 test suites passing:
-     - `dotnet test backend/TravelWise.Tests/TravelWise.Tests.csproj` (13/13 passing)
-     - `pytest tests/` in `ai-service/` (8/8 passing)
-     - `flutter test` and `flutter analyze` in `mobile/` (3/3 passing, 0 issues)
-     - `npm run build` in `frontend/` (0 errors)
-   - Show the green GitHub Actions CI badge on repository.
-
----
-
-## Documentation Library
-
-For in-depth architectural and design documentation, see the `docs/` directory:
-- [Project Overview](docs/PROJECT_OVERVIEW.md)
-- [System Architecture](docs/ARCHITECTURE.md)
-- [Components & Business Rules](docs/COMPONENTS_AND_BUSINESS_RULES.md)
-- [Academic AI Disclosure](docs/AI_DISCLOSURE.md)
-- [Production Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
+This README describes repository evidence from the current TravelWise implementation. It deliberately avoids presenting planned features, unsupported roles, unverified performance numbers or unverified model-backed AI behaviour as completed work.
