@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: .NET API & Deterministic Tests
@@ -24,11 +28,42 @@ jobs:
           dotnet restore backend/TravelWise.API/TravelWise.API.csproj
           dotnet restore backend/TravelWise.Tests/TravelWise.Tests.csproj
 
-      - name: Build Solution
-        run: dotnet build --no-restore --configuration Release backend/TravelWise.API/TravelWise.API.csproj
+      - name: Build Projects
+        run: |
+          dotnet build --no-restore --configuration Release backend/TravelWise.API/TravelWise.API.csproj
+          dotnet build --no-restore --configuration Release backend/TravelWise.Tests/TravelWise.Tests.csproj
 
       - name: Run Backend Tests
         run: dotnet test --no-restore --configuration Release backend/TravelWise.Tests/TravelWise.Tests.csproj --verbosity normal
+
+  frontend:
+    name: React Web Client Build & Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Frontend Bundle
+        run: npm run build
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Frontend E2E & Workflow Tests
+        run: npm run test:e2e
 
   ai-service:
     name: Python LangGraph AI Service & Golden Cases
@@ -81,32 +116,3 @@ jobs:
 
       - name: Run Unit & Widget Tests
         run: flutter test
-
-  frontend:
-    name: React Web Client Build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Frontend Bundle
-        run: npm run build
-
-      - name: Install browser for workflow tests
-        run: npx playwright install --with-deps chromium
-
-      - name: Validate traveller and admin workflows
-        run: npm run test:e2e
